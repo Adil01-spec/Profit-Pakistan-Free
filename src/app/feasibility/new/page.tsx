@@ -5,8 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useHistory } from '@/hooks/use-history';
-import { useSettings } from '@/hooks/use-settings';
+import { useHistory } from '@/hooks/use-history.tsx';
+import { useSettings } from '@/hooks/use-settings.tsx';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -167,7 +167,7 @@ export default function FeasibilityPage() {
                         <FormItem><FormLabel>Ad Budget (monthly)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="costPerConversion" render={({ field }) => (
-                        <FormItem><FormLabel>Cost per Conversion</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>Cost per Conversion</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormMessage /></FormItem>
                     )} />
                 </div>
                  <FormField control={form.control} name="courierRate" render={({ field }) => (
