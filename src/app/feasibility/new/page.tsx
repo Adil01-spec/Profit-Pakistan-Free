@@ -3,11 +3,10 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { addHistoryRecord } from '@/lib/firebase-service';
-import { banks } from '@/lib/banks';
+import { useHistory } from '@/hooks/use-history';
+import { useSettings } from '@/hooks/use-settings';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -18,6 +17,8 @@ import { Header } from '@/components/header';
 import { Loader2 } from 'lucide-react';
 import type { FeasibilityCheck } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { v4 as uuidv4 } from 'uuid';
+
 
 const formSchema = z.object({
   productName: z.string().min(2),
@@ -40,9 +41,10 @@ const formSchema = z.object({
 });
 
 export default function FeasibilityPage() {
-  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { addHistoryRecord } = useHistory();
+  const [settings, setSettings] = useSettings();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -53,8 +55,8 @@ export default function FeasibilityPage() {
       sourcingCost: 0,
       sellingPrice: 0,
       shopifyPlan: 'trial',
-      bank: '',
-      debitCardTax: 1.5,
+      bank: settings.banks[0]?.name || '',
+      debitCardTax: settings.banks[0]?.tax || 1.5,
       courierRate: 200,
       adBudget: 0,
       costPerConversion: 0,
@@ -64,14 +66,13 @@ export default function FeasibilityPage() {
   const shopifyPlan = form.watch('shopifyPlan');
 
   const handleBankChange = (bankName: string) => {
-    const selectedBank = banks.find(b => b.name === bankName);
+    const selectedBank = settings.banks.find(b => b.name === bankName);
     if (selectedBank) {
       form.setValue('debitCardTax', selectedBank.tax);
     }
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) return;
     setIsSubmitting(true);
 
     const { adBudget, costPerConversion, sellingPrice, sourcingCost, courierRate } = values;
@@ -95,28 +96,23 @@ export default function FeasibilityPage() {
         summary = `You're close to breaking even. A small improvement in sales or costs could make you profitable.`;
     }
 
-    const resultData: Omit<FeasibilityCheck, 'id' | 'userId' | 'date'> = {
+    const resultData: FeasibilityCheck = {
+        id: uuidv4(),
+        date: new Date().toISOString(),
         ...values,
         type: 'Feasibility',
         shopifyMonthlyCost: shopifyCost / 300,
         totalMonthlyFixedCosts,
         breakevenConversions,
         netProfit,
+        summary, 
+        profitStatus
     };
     
-    try {
-        const docId = await addHistoryRecord(user.uid, { ...resultData, summary, profitStatus });
-        toast({ title: "Report Saved!", description: "Your ad feasibility check has been saved."});
-        router.push(`/history/${docId}`);
-    } catch (error) {
-        console.error("Error saving record: ", error);
-        toast({ title: "Error", description: "Could not save your report.", variant: "destructive"});
-        setIsSubmitting(false);
-    }
+    addHistoryRecord(resultData);
+    toast({ title: "Feasibility Report Saved ✅", description: "Your ad feasibility check has been saved locally."});
+    router.push(`/history/${resultData.id}`);
   }
-
-  if (authLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
-  if (!user) { router.push('/login'); return null; }
 
   return (
     <>
@@ -161,7 +157,7 @@ export default function FeasibilityPage() {
                         <FormItem><FormLabel>Bank for Payments</FormLabel>
                         <Select onValueChange={(value) => { field.onChange(value); handleBankChange(value); }} defaultValue={field.value}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Select a bank" /></SelectTrigger></FormControl>
-                            <SelectContent>{banks.map(b => <SelectItem key={b.name} value={b.name}>{b.name}</SelectItem>)}</SelectContent>
+                            <SelectContent>{settings.banks.map(b => <SelectItem key={b.name} value={b.name}>{b.name}</SelectItem>)}</SelectContent>
                         </Select><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="debitCardTax" render={({ field }) => (

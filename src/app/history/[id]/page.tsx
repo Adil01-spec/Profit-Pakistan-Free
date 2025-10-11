@@ -2,63 +2,38 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/use-auth';
-import { getHistoryRecord } from '@/lib/firebase-service';
+import { useHistory } from '@/hooks/use-history';
 import type { HistoryRecord, LaunchPlan, FeasibilityCheck } from '@/lib/types';
 import { Header } from '@/components/header';
 import { Loader2 } from 'lucide-react';
 import { ResultDisplay } from '@/components/history/result-display';
 
 export default function ReportDetailPage() {
-  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
   const { id } = params;
+  const { history, loading } = useHistory();
 
   const [record, setRecord] = useState<HistoryRecord | null>(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      router.push('/login');
-      return;
+    if (!loading && typeof id === 'string') {
+      const foundRecord = history.find((r) => r.id === id);
+      if (foundRecord) {
+        setRecord(foundRecord);
+      } else {
+        router.push('/history');
+      }
     }
+  }, [id, history, loading, router]);
 
-    if (typeof id === 'string') {
-      const fetchRecord = async () => {
-        setLoading(true);
-        const fetchedRecord = await getHistoryRecord(user.uid, id);
-        if (fetchedRecord) {
-          setRecord(fetchedRecord);
-        } else {
-          // Handle not found
-          router.push('/history');
-        }
-        setLoading(false);
-      };
-      fetchRecord();
-    }
-  }, [id, user, authLoading, router]);
-
-  if (authLoading || loading) {
+  if (loading || !record) {
     return (
       <div className="flex min-h-screen flex-col">
         <Header />
         <div className="flex flex-1 items-center justify-center">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
-      </div>
-    );
-  }
-
-  if (!record) {
-    return (
-        <div className="flex min-h-screen flex-col">
-            <Header />
-            <div className="flex flex-1 items-center justify-center">
-                <p>Report not found.</p>
-            </div>
       </div>
     );
   }

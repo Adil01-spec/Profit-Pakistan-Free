@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { UserNav } from '@/components/auth/user-nav';
+import { Button } from './ui/button';
+import { FolderClock } from 'lucide-react';
+import { SettingsDialog } from './settings-dialog';
 
 export function Header() {
   return (
@@ -16,8 +18,14 @@ export function Header() {
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-2">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/history">
+                <FolderClock className="h-5 w-5"/>
+                <span className="sr-only">My Reports</span>
+            </Link>
+          </Button>
+          <SettingsDialog />
           <ThemeToggle />
-          <UserNav />
         </div>
       </div>
     </header>

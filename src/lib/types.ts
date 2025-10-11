@@ -1,8 +1,7 @@
 export type ProfitStatus = 'Profitable' | 'Near Breakeven' | 'Loss';
 
 export type BaseAnalysis = {
-  id?: string;
-  userId: string;
+  id: string;
   productName: string;
   category: string;
   date: string; // ISO string
@@ -42,4 +41,14 @@ export type FeasibilityCheck = BaseAnalysis & {
   netProfit: number;
 };
 
-export type HistoryRecord = (LaunchPlan | FeasibilityCheck) & { id: string };
+export type HistoryRecord = LaunchPlan | FeasibilityCheck;
+
+export type Bank = {
+  name: string;
+  tax: number;
+};
+
+export interface AppSettings {
+    banks: Bank[];
+    taxRate: number;
+}

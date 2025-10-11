@@ -3,6 +3,8 @@ import './globals.css';
 import { Providers } from '@/components/providers';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
+import { SettingsProvider } from '@/hooks/use-settings';
+import { HistoryProvider } from '@/hooks/use-history';
 
 export const metadata: Metadata = {
   title: 'Profit Pakistan Pro',
@@ -23,8 +25,12 @@ export default function RootLayout({
       </head>
       <body className={cn('font-body antialiased')}>
         <Providers>
-          {children}
-          <Toaster />
+            <SettingsProvider>
+                <HistoryProvider>
+                    {children}
+                    <Toaster />
+                </HistoryProvider>
+            </SettingsProvider>
         </Providers>
       </body>
     </html>

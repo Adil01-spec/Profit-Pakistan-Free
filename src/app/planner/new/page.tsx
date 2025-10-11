@@ -3,9 +3,9 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
-import { addHistoryRecord } from '@/lib/firebase-service';
+import { useState } from 'react';
+import { useHistory } from '@/hooks/use-history';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -21,6 +21,7 @@ import { Header } from '@/components/header';
 import { Loader2 } from 'lucide-react';
 import type { LaunchPlan } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { v4 as uuidv4 } from 'uuid';
 
 const formSchema = z.object({
   productName: z.string().min(2, { message: 'Product name must be at least 2 characters.' }),
@@ -35,10 +36,10 @@ const formSchema = z.object({
 });
 
 export default function PlannerPage() {
-  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { addHistoryRecord } = useHistory();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -53,10 +54,6 @@ export default function PlannerPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) {
-        toast({ title: "Not authenticated", description: "You must be logged in to save a report.", variant: "destructive"});
-        return;
-    }
     setIsSubmitting(true);
 
     const { sourcingCost, sellingPrice, marketingBudget, courierRate } = values;
@@ -77,8 +74,10 @@ export default function PlannerPage() {
         summary = `The profit margin is low (${profitMargin.toFixed(1)}%). Be cautious with ad spend.`;
     }
 
-    const resultData: Omit<LaunchPlan, 'id' | 'userId' | 'date'> = {
+    const resultData: LaunchPlan = {
+        id: uuidv4(),
         type: 'Launch',
+        date: new Date().toISOString(),
         productName: values.productName,
         category: values.category,
         sourcingCost,
@@ -93,19 +92,10 @@ export default function PlannerPage() {
         summary,
     };
 
-    try {
-        const docId = await addHistoryRecord(user.uid, resultData);
-        toast({ title: "Report Saved!", description: "Your product launch plan has been saved."});
-        router.push(`/history/${docId}`);
-    } catch (error) {
-        console.error("Error saving record: ", error);
-        toast({ title: "Error", description: "Could not save your report. Please try again.", variant: "destructive"});
-        setIsSubmitting(false);
-    }
+    addHistoryRecord(resultData);
+    toast({ title: "Report Saved ✅", description: "Your product launch plan has been saved locally."});
+    router.push(`/history/${resultData.id}`);
   }
-
-  if (authLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
-  if (!user) router.push('/login');
 
   return (
     <>

@@ -1,48 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Lightbulb, BarChart3, ChevronRight } from 'lucide-react';
+import { Lightbulb, BarChart3, ChevronRight } from 'lucide-react';
 import { Header } from '@/components/header';
 import { HistoryList } from '@/components/history/history-list';
-import type { HistoryRecord } from '@/lib/types';
-import { getUserHistory } from '@/lib/firebase-service';
+import { useHistory } from '@/hooks/use-history';
 
 export default function DashboardPage() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-  const [history, setHistory] = useState<HistoryRecord[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(true);
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
-    }
-  }, [user, loading, router]);
-
-  useEffect(() => {
-    if (user) {
-      const fetchHistory = async () => {
-        setHistoryLoading(true);
-        const userHistory = await getUserHistory(user.uid);
-        setHistory(userHistory);
-        setHistoryLoading(false);
-      };
-      fetchHistory();
-    }
-  }, [user]);
-
-  if (loading || !user) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const { history, loading: historyLoading } = useHistory();
 
   return (
     <div className="flex min-h-screen w-full flex-col">
@@ -51,10 +18,10 @@ export default function DashboardPage() {
         <div className="mx-auto max-w-6xl">
           <section className="mb-8">
             <h1 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Welcome, {user.displayName?.split(' ')[0] || 'User'}!
+              Welcome to Profit Pakistan Pro!
             </h1>
             <p className="text-muted-foreground">
-              What would you like to analyze today?
+              Your financial co-pilot for e-commerce in Pakistan. What would you like to analyze today?
             </p>
           </section>
 
@@ -100,7 +67,7 @@ export default function DashboardPage() {
           <section>
             <div className="flex items-center justify-between mb-4">
                 <h2 className="text-2xl font-bold tracking-tight">Recent Reports</h2>
-                {history.length > 0 && (
+                {history.length > 5 && (
                     <Button asChild variant="ghost" className="text-primary">
                         <Link href="/history">View All <ChevronRight className="ml-1 h-4 w-4" /></Link>
                     </Button>
