@@ -1,7 +1,7 @@
 'use client';
 import { HistoryRecord } from "@/lib/types";
 import { createContext, useContext, ReactNode } from "react";
-import { createLocalStorageStateHook } from 'use-local-storage-state';
+import useLocalStorageState from 'use-local-storage-state';
 
 interface HistoryContextType {
     history: HistoryRecord[];
@@ -13,13 +13,11 @@ interface HistoryContextType {
 
 const HistoryContext = createContext<HistoryContextType | undefined>(undefined);
 
-const useHistoryState = createLocalStorageStateHook<HistoryRecord[]>('history', []);
-
 export function HistoryProvider({ children }: { children: ReactNode }) {
-    const [history, setHistory, { isLoading }] = useHistoryState();
+    const [history, setHistory, { isLoading }] = useLocalStorageState<HistoryRecord[]>('history', { defaultValue: [] });
 
     const addHistoryRecord = (record: HistoryRecord) => {
-        setHistory(prev => [record, ...prev]);
+        setHistory(prev => [record, ...(prev ?? [])]);
     };
 
     const clearHistory = () => {

@@ -31,7 +31,7 @@ const formSchema = z.object({
   debitCardTax: z.coerce.number().min(0),
   courierRate: z.coerce.number().min(0),
   adBudget: z.coerce.number().min(0),
-  costPerConversion: z.coerce.number().min(1, { message: 'Cost per conversion must be at least 1.' }),
+  costPerConversion: z.coerce.number().min(0),
 }).refine(data => data.shopifyPlan === 'trial' || (data.shopifyMonthlyCost !== undefined && data.shopifyMonthlyCost > 0), {
   message: 'Please enter your Shopify monthly cost.',
   path: ['shopifyMonthlyCost'],
@@ -167,7 +167,7 @@ export default function FeasibilityPage() {
                         <FormItem><FormLabel>Ad Budget (monthly)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="costPerConversion" render={({ field }) => (
-                        <FormItem><FormLabel>Cost per Conversion</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormMessage /></FormItem>
+                        <FormItem><FormLabel>Cost per Conversion</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
                  <FormField control={form.control} name="courierRate" render={({ field }) => (

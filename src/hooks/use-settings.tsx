@@ -2,17 +2,22 @@
 import { AppSettings } from "@/lib/types";
 import { defaultBanks } from "@/lib/banks";
 import { createContext, useContext, ReactNode } from "react";
-import { createLocalStorageStateHook } from 'use-local-storage-state';
+import useLocalStorageState from 'use-local-storage-state';
 
 const SettingsContext = createContext<[AppSettings, React.Dispatch<React.SetStateAction<AppSettings>>, {isPersistent: boolean;}] | undefined>(undefined);
 
-const useSettingsState = createLocalStorageStateHook<AppSettings>('settings', {
+const defaultSettings: AppSettings = {
     banks: defaultBanks,
     taxRate: 5,
-});
+};
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-    const value = useSettingsState();
+    const [settings, setSettings, { isPersistent }] = useLocalStorageState<AppSettings>('settings', {
+        defaultValue: defaultSettings
+    });
+
+    const value: [AppSettings, React.Dispatch<React.SetStateAction<AppSettings>>, {isPersistent: boolean;}] = [settings, setSettings, { isPersistent }];
+
     return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
 
