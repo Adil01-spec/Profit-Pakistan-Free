@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "login-background",
+      "description": "An abstract background image with green and blue tones, representing finance and technology.",
+      "imageUrl": "https://picsum.photos/seed/profitpro/1920/1080",
+      "imageHint": "abstract tech"
+    }
+  ]
 }
