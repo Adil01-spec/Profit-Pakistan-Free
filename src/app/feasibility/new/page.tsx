@@ -44,34 +44,40 @@ const formSchema = z.object({
 const BreakEvenCard = ({ form }: { form: any }) => {
     const { sourcingCost, courierRate, sellingPrice } = form.watch();
     
+    // This calculation only considers per-unit variable costs.
     const breakEvenPrice = useMemo(() => {
         return (sourcingCost || 0) + (courierRate || 0);
     }, [sourcingCost, courierRate]);
 
+    // Profitability is determined by whether the selling price covers the per-unit costs.
+    // The profitability status considering fixed costs (like ads) is determined on submission.
     const isProfitable = sellingPrice > breakEvenPrice;
+    const isAtBreakeven = sellingPrice === breakEvenPrice;
     const isBelowCost = sellingPrice > 0 && sellingPrice < breakEvenPrice;
 
     return (
         <Card className="mt-6">
             <CardHeader>
-                <CardTitle>Break-even Analysis</CardTitle>
+                <CardTitle>Per-Unit Break-even Analysis</CardTitle>
                 <CardDescription>
-                    The minimum price you need to sell at to cover your per-unit costs.
+                    The minimum price you need to sell at to cover your sourcing and courier costs for a single unit. This does not include fixed monthly costs like ads or Shopify fees.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Break-even Price</p>
+                    <p className="text-sm text-muted-foreground">Break-even Price (per unit)</p>
                     <p className="text-3xl font-bold">
                         PKR {breakEvenPrice.toLocaleString('en-US', {maximumFractionDigits: 0})}
                     </p>
                     {sellingPrice > 0 && (
                          <div className={cn("mt-2 text-sm font-semibold", 
                             isProfitable && "text-green-600",
+                            isAtBreakeven && "text-yellow-600",
                             isBelowCost && "text-red-600"
                          )}>
-                             {isProfitable && "Profitable Margin!"}
-                             {isBelowCost && "You’re selling below cost!"}
+                             {isProfitable && "Profitable Margin on each unit sold!"}
+                             {isAtBreakeven && "Breaking even on each unit sold."}
+                             {isBelowCost && "You’re selling each unit at a loss!"}
                          </div>
                     )}
                 </div>
@@ -114,47 +120,57 @@ export default function FeasibilityPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
+    toast({ title: "Calculating...", description: "Running the numbers for your report." });
 
-    const { adBudget, costPerConversion, sellingPrice, sourcingCost, courierRate } = values;
-    const shopifyCost = values.shopifyPlan === 'trial' ? 1 * 300 : (values.shopifyMonthlyCost || 0) * 300; // Approx USD to PKR
-    const totalMonthlyFixedCosts = shopifyCost + adBudget;
-    
-    const profitPerSale = sellingPrice - sourcingCost - courierRate;
-    const breakevenConversions = totalMonthlyFixedCosts > 0 && profitPerSale > 0 ? Math.ceil(totalMonthlyFixedCosts / profitPerSale) : 0;
-    
-    const conversionsPerMonth = adBudget > 0 && costPerConversion > 0 ? adBudget / costPerConversion : 0;
-    const totalProfitPerMonth = conversionsPerMonth * profitPerSale;
-    const netProfit = totalProfitPerMonth - shopifyCost;
+    // Use a timeout to allow the toast to render before blocking the main thread
+    setTimeout(() => {
+      const { adBudget, costPerConversion, sellingPrice, sourcingCost, courierRate } = values;
+      const shopifyCost = values.shopifyPlan === 'trial' ? 1 * 300 : (values.shopifyMonthlyCost || 0) * 300; // Approx USD to PKR
+      
+      const totalMonthlyFixedCosts = shopifyCost + adBudget;
+      const profitPerSale = sellingPrice - sourcingCost - courierRate;
+      const breakevenConversions = totalMonthlyFixedCosts > 0 && profitPerSale > 0 ? Math.ceil(totalMonthlyFixedCosts / profitPerSale) : 0;
+      
+      const conversionsPerMonth = adBudget > 0 && costPerConversion > 0 ? adBudget / costPerConversion : 0;
+      const totalRevenue = conversionsPerMonth * sellingPrice;
+      const totalSourcingCost = conversionsPerMonth * sourcingCost;
+      const totalCourierCost = conversionsPerMonth * courierRate;
 
-    let profitStatus: FeasibilityCheck['profitStatus'] = 'Loss';
-    let summary = "You're currently at a loss. You need more sales or lower costs to be profitable.";
-    if (netProfit > 0) {
-        profitStatus = 'Profitable';
-        summary = `You are making an estimated profit of PKR ${netProfit.toLocaleString('en-US', {maximumFractionDigits: 0})}/month.`;
-    } else if (netProfit > -totalMonthlyFixedCosts * 0.1) {
-        profitStatus = 'Near Breakeven';
-        summary = `You're close to breaking even. A small improvement in sales or costs could make you profitable.`;
-    }
+      // Net profit calculation including all costs
+      const netProfit = totalRevenue - totalSourcingCost - totalCourierCost - totalMonthlyFixedCosts;
 
-    const breakEvenPrice = sourcingCost + courierRate;
+      let profitStatus: FeasibilityCheck['profitStatus'] = 'Loss';
+      let summary = "You're projected to be at a loss. You need more sales or lower costs to be profitable.";
+      if (netProfit > 0) {
+          profitStatus = 'Profitable';
+          summary = `You are making an estimated profit of PKR ${netProfit.toLocaleString('en-US', {maximumFractionDigits: 0})}/month.`;
+      } else if (netProfit > -totalMonthlyFixedCosts * 0.2) { // Within 20% of breakeven
+          profitStatus = 'Near Breakeven';
+          summary = `You're close to breaking even. A small improvement in sales or costs could make you profitable.`;
+      }
 
-    const resultData: FeasibilityCheck = {
-        id: uuidv4(),
-        date: new Date().toISOString(),
-        ...values,
-        type: 'Feasibility',
-        shopifyMonthlyCost: shopifyCost / 300,
-        totalMonthlyFixedCosts,
-        breakevenConversions,
-        netProfit,
-        summary, 
-        profitStatus,
-        breakEvenPrice,
-    };
-    
-    addHistoryRecord(resultData);
-    toast({ title: "Feasibility Report Saved ✅", description: "Your ad feasibility check has been saved locally."});
-    router.push(`/history/${resultData.id}`);
+      // This is the break-even price for a single unit (variable costs only)
+      const breakEvenPrice = sourcingCost + courierRate;
+
+      const resultData: FeasibilityCheck = {
+          id: uuidv4(),
+          date: new Date().toISOString(),
+          ...values,
+          type: 'Feasibility',
+          shopifyMonthlyCost: values.shopifyPlan === 'trial' ? 1 : (values.shopifyMonthlyCost || 0),
+          totalMonthlyFixedCosts,
+          breakevenConversions,
+          netProfit,
+          summary, 
+          profitStatus,
+          breakEvenPrice, // This matches the on-screen calculation
+      };
+      
+      addHistoryRecord(resultData);
+      toast({ title: "Feasibility Report Saved ✅", description: "Your ad feasibility check has been saved locally."});
+      router.push(`/history/${resultData.id}`);
+      setIsSubmitting(false);
+    }, 500); // 500ms delay
   }
 
   return (
