@@ -41,48 +41,6 @@ const formSchema = z.object({
     path: ["sellingPrice"],
 });
 
-const BreakEvenCard = ({ form }: { form: any }) => {
-    const { sourcingCost, courierRate, sellingPrice } = form.watch();
-    
-    const breakEvenPrice = useMemo(() => {
-        return (sourcingCost || 0) + (courierRate || 0);
-    }, [sourcingCost, courierRate]);
-
-    const isProfitable = sellingPrice > breakEvenPrice;
-    const isAtBreakeven = sellingPrice === breakEvenPrice;
-    const isBelowCost = sellingPrice > 0 && sellingPrice < breakEvenPrice;
-
-    return (
-        <Card className="mt-6">
-            <CardHeader>
-                <CardTitle>Per-Unit Break-even Analysis</CardTitle>
-                <CardDescription>
-                    The minimum price to cover your sourcing and courier costs for a single unit. This does not include fixed monthly costs like ads or Shopify fees.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="text-center p-4 bg-muted/50 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Break-even Price (per unit)</p>
-                    <p className="text-3xl font-bold">
-                        PKR {breakEvenPrice.toLocaleString('en-US', {maximumFractionDigits: 0})}
-                    </p>
-                    {sellingPrice > 0 && (
-                         <div className={cn("mt-2 text-sm font-semibold", 
-                            isProfitable && "text-green-600",
-                            isAtBreakeven && "text-yellow-600",
-                            isBelowCost && "text-red-600"
-                         )}>
-                             {isProfitable && "Profitable Margin on each unit sold!"}
-                             {isAtBreakeven && "Breaking even on each unit sold."}
-                             {isBelowCost && "You’re selling each unit at a loss!"}
-                         </div>
-                    )}
-                </div>
-            </CardContent>
-        </Card>
-    );
-};
-
 export default function FeasibilityPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -236,8 +194,6 @@ export default function FeasibilityPage() {
                     <FormItem><FormLabel>Courier Rate</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 
-                <BreakEvenCard form={form} />
-
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Calculate & Save
