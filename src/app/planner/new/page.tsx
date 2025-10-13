@@ -121,7 +121,7 @@ export default function PlannerPage() {
     const resultData: LaunchPlan = {
         id: uuidv4(),
         type: 'Launch',
-        date: new 'Date().toISOString()',
+        date: new Date().toISOString(),
         ...values,
         ...calculatedValues
     };
@@ -261,5 +261,3 @@ export default function PlannerPage() {
     </>
   );
 }
-
-    
