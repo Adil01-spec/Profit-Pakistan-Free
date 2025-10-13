@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useHistory } from '@/hooks/use-history';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +25,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { PlannerResults } from '@/components/planner/planner-results';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { courierRates } from '@/lib/courier-rates';
 
 const formSchema = z.object({
   productName: z.string().min(2, { message: 'Product name must be at least 2 characters.' }),
@@ -32,6 +33,7 @@ const formSchema = z.object({
   sourcingCost: z.coerce.number().min(0, { message: 'Sourcing cost must be a positive number.' }),
   sellingPrice: z.coerce.number().min(1, { message: 'Selling price must be greater than 0.' }),
   marketingBudget: z.coerce.number().min(0, { message: 'Marketing budget must be a positive number.' }),
+  courier: z.string().min(1),
   courierRate: z.coerce.number().min(0, { message: 'Courier rate must be a positive number.' }),
   paymentType: z.enum(['COD', 'Online']),
 }).refine(data => data.sellingPrice > data.sourcingCost, {
@@ -56,13 +58,23 @@ export default function PlannerPage() {
       sourcingCost: 0,
       sellingPrice: 0,
       marketingBudget: 0,
-      courierRate: 250,
+      courier: 'TCS',
+      courierRate: courierRates.TCS.COD,
       paymentType: 'COD',
     },
   });
 
   const watchedValues = form.watch();
   const paymentType = form.watch('paymentType');
+  const selectedCourier = form.watch('courier');
+
+  useEffect(() => {
+    const courier = selectedCourier as keyof typeof courierRates;
+    if (courier && courier !== 'Other') {
+        const rate = courierRates[courier][paymentType];
+        form.setValue('courierRate', rate, { shouldValidate: true });
+    }
+  }, [paymentType, selectedCourier, form]);
 
   const calculatedValues = useMemo(() => {
     const { sourcingCost, sellingPrice, marketingBudget, courierRate, paymentType } = watchedValues;
@@ -94,8 +106,6 @@ export default function PlannerPage() {
 
   const handlePaymentTypeChange = (value: 'COD' | 'Online') => {
       form.setValue('paymentType', value);
-      const newCourierRate = value === 'COD' ? 250 : 200;
-      form.setValue('courierRate', newCourierRate, { shouldValidate: true });
       toast({
           title: value === 'COD' ? 'Reminder: 2% FBR Tax' : 'Reminder: 1% FBR Tax',
           description: value === 'COD' 
@@ -111,7 +121,7 @@ export default function PlannerPage() {
     const resultData: LaunchPlan = {
         id: uuidv4(),
         type: 'Launch',
-        date: new Date().toISOString(),
+        date: new 'Date().toISOString()',
         ...values,
         ...calculatedValues
     };
@@ -162,7 +172,7 @@ export default function PlannerPage() {
                         </FormItem>
                     )} />
                     <FormField control={form.control} name="marketingBudget" render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="sm:col-span-2">
                         <FormLabel>Marketing Budget (monthly)</FormLabel>
                         <FormControl><Input type="number" placeholder="50000" {...field} /></FormControl>
                         <FormMessage />
@@ -172,8 +182,8 @@ export default function PlannerPage() {
                 
                 <Card className="bg-muted/30">
                     <CardHeader>
-                        <CardTitle className="text-lg">Payment Type &amp; Courier</CardTitle>
-                        <CardDescription>Select payment type to apply correct tax and courier rates.</CardDescription>
+                        <CardTitle className="text-lg">Courier, Payments &amp; Taxes</CardTitle>
+                        <CardDescription>Select payment type and courier to apply correct rates and taxes.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <FormField
@@ -207,10 +217,30 @@ export default function PlannerPage() {
                                 </FormItem>
                             )}
                         />
+                        <FormField
+                            control={form.control}
+                            name="courier"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Courier Company</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder="Select a courier" /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {Object.keys(courierRates).map(courierName => (
+                                                <SelectItem key={courierName} value={courierName}>{courierName}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <FormField control={form.control} name="courierRate" render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="sm:col-span-2">
                             <FormLabel>Courier Rate (per delivery)</FormLabel>
-                            <FormControl><Input type="number" {...field} /></FormControl>
+                            <FormControl><Input type="number" {...field} disabled={selectedCourier !== 'Other'} /></FormControl>
                             <FormMessage />
                             </FormItem>
                         )} />
@@ -231,3 +261,5 @@ export default function PlannerPage() {
     </>
   );
 }
+
+    

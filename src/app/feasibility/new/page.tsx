@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useHistory } from '@/hooks/use-history';
 import { useSettings } from '@/hooks/use-settings';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,8 @@ import { Loader2, Info } from 'lucide-react';
 import type { FeasibilityCheck } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { courierRates } from '@/lib/courier-rates';
 
 const formSchema = z.object({
   productName: z.string().min(2),
@@ -29,6 +30,7 @@ const formSchema = z.object({
   shopifyMonthlyCost: z.coerce.number().min(0).optional(),
   bank: z.string().min(1, { message: 'Please select a bank.' }),
   debitCardTax: z.coerce.number().min(0),
+  courier: z.string().min(1),
   courierRate: z.coerce.number().min(0),
   adBudget: z.coerce.number().min(0),
   costPerConversion: z.coerce.number().min(0),
@@ -59,7 +61,8 @@ export default function FeasibilityPage() {
       shopifyPlan: 'trial',
       bank: settings.banks[0]?.name || '',
       debitCardTax: settings.banks[0]?.tax || 1.5,
-      courierRate: 250,
+      courier: 'TCS',
+      courierRate: courierRates.TCS.COD,
       adBudget: 0,
       costPerConversion: 0,
       paymentType: 'COD',
@@ -67,7 +70,17 @@ export default function FeasibilityPage() {
   });
   
   const shopifyPlan = form.watch('shopifyPlan');
+  const paymentType = form.watch('paymentType');
+  const selectedCourier = form.watch('courier');
   const watchedValues = form.watch();
+
+  useEffect(() => {
+    const courier = selectedCourier as keyof typeof courierRates;
+    if (courier && courier !== 'Other') {
+        const rate = courierRates[courier][paymentType];
+        form.setValue('courierRate', rate, { shouldValidate: true });
+    }
+  }, [paymentType, selectedCourier, form]);
 
   const handleBankChange = (bankName: string) => {
     const selectedBank = settings.banks.find(b => b.name === bankName);
@@ -78,8 +91,6 @@ export default function FeasibilityPage() {
 
   const handlePaymentTypeChange = (value: 'COD' | 'Online') => {
       form.setValue('paymentType', value);
-      const newCourierRate = value === 'COD' ? 250 : 200;
-      form.setValue('courierRate', newCourierRate, { shouldValidate: true });
       toast({
           title: value === 'COD' ? 'Reminder: 2% FBR Tax' : 'Reminder: 1% FBR Tax',
           description: value === 'COD' 
@@ -113,7 +124,7 @@ export default function FeasibilityPage() {
     if (netProfit > 0) {
         profitStatus = 'Profitable';
         summary = `You are making an estimated profit of PKR ${netProfit.toLocaleString('en-US', {maximumFractionDigits: 0})}/month.`;
-    } else if (netProfit > -totalMonthlyFixedCosts * 0.2) { 
+    } else if (netProfit > -totalMonthlyFixedCosts * 0.2 && netProfit <= 0) { 
         profitStatus = 'Near Breakeven';
         summary = `You're close to breaking even. A small improvement in sales or costs could make you profitable.`;
     }
@@ -202,8 +213,8 @@ export default function FeasibilityPage() {
 
                  <Card className="bg-muted/30">
                     <CardHeader>
-                        <CardTitle className="text-lg">Payment Type, Courier & Taxes</CardTitle>
-                        <CardDescription>Select payment type to apply correct tax and courier rates.</CardDescription>
+                        <CardTitle className="text-lg">Courier, Payments & Taxes</CardTitle>
+                        <CardDescription>Select payment type and courier to apply correct rates and taxes.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <FormField
@@ -237,10 +248,30 @@ export default function FeasibilityPage() {
                                 </FormItem>
                             )}
                         />
-                        <FormField control={form.control} name="courierRate" render={({ field }) => (
+                        <FormField
+                            control={form.control}
+                            name="courier"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Courier Company</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder="Select a courier" /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {Object.keys(courierRates).map(courierName => (
+                                                <SelectItem key={courierName} value={courierName}>{courierName}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField control={form.control} name="courierRate" render={({ field }) => (
                             <FormItem>
                                 <FormLabel>Courier Rate (per delivery)</FormLabel>
-                                <FormControl><Input type="number" {...field} /></FormControl>
+                                <FormControl><Input type="number" {...field} disabled={selectedCourier !== 'Other'} /></FormControl>
                                 <FormMessage />
                             </FormItem>
                          )} />
@@ -278,3 +309,5 @@ export default function FeasibilityPage() {
     </>
   );
 }
+
+    

@@ -17,6 +17,7 @@ export type LaunchPlan = BaseAnalysis & {
   sourcingCost: number;
   sellingPrice: number;
   marketingBudget: number;
+  courier: string;
   courierRate: number;
   
   // Calculated
@@ -32,9 +33,10 @@ export type FeasibilityCheck = BaseAnalysis & {
   shopifyMonthlyCost: number;
   bank: string;
   debitCardTax: number;
+  courier: string;
   courierRate: number;
   adBudget: number;
-  costPerConversion: number;
+costPerConversion: number;
   sellingPrice: number;
   sourcingCost: number;
 
@@ -56,3 +58,5 @@ export interface AppSettings {
     banks: Bank[];
     taxRate: number;
 }
+
+    
