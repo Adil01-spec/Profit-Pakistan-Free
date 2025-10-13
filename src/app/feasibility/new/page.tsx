@@ -4,20 +4,21 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { useHistory } from '@/hooks/use-history.tsx';
-import { useSettings } from '@/hooks/use-settings.tsx';
+import { useState, useMemo } from 'react';
+import { useHistory } from '@/hooks/use-history';
+import { useSettings } from '@/hooks/use-settings';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Header } from '@/components/header';
 import { Loader2 } from 'lucide-react';
 import type { FeasibilityCheck } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
+import { cn } from '@/lib/utils';
 
 
 const formSchema = z.object({
@@ -39,6 +40,45 @@ const formSchema = z.object({
     message: "Selling price must be greater than sourcing cost.",
     path: ["sellingPrice"],
 });
+
+const BreakEvenCard = ({ form }: { form: any }) => {
+    const { sourcingCost, courierRate, sellingPrice } = form.watch();
+    
+    const breakEvenPrice = useMemo(() => {
+        return (sourcingCost || 0) + (courierRate || 0);
+    }, [sourcingCost, courierRate]);
+
+    const isProfitable = sellingPrice > breakEvenPrice;
+    const isBelowCost = sellingPrice > 0 && sellingPrice < breakEvenPrice;
+
+    return (
+        <Card className="mt-6">
+            <CardHeader>
+                <CardTitle>Break-even Analysis</CardTitle>
+                <CardDescription>
+                    The minimum price you need to sell at to cover your per-unit costs.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="text-center p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground">Break-even Price</p>
+                    <p className="text-3xl font-bold">
+                        PKR {breakEvenPrice.toLocaleString('en-US', {maximumFractionDigits: 0})}
+                    </p>
+                    {sellingPrice > 0 && (
+                         <div className={cn("mt-2 text-sm font-semibold", 
+                            isProfitable && "text-success",
+                            isBelowCost && "text-destructive"
+                         )}>
+                             {isProfitable && "Profitable Margin!"}
+                             {isBelowCost && "You’re selling below cost!"}
+                         </div>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    );
+};
 
 export default function FeasibilityPage() {
   const router = useRouter();
@@ -96,6 +136,8 @@ export default function FeasibilityPage() {
         summary = `You're close to breaking even. A small improvement in sales or costs could make you profitable.`;
     }
 
+    const breakEvenPrice = sourcingCost + courierRate;
+
     const resultData: FeasibilityCheck = {
         id: uuidv4(),
         date: new Date().toISOString(),
@@ -106,7 +148,8 @@ export default function FeasibilityPage() {
         breakevenConversions,
         netProfit,
         summary, 
-        profitStatus
+        profitStatus,
+        breakEvenPrice,
     };
     
     addHistoryRecord(resultData);
@@ -173,6 +216,9 @@ export default function FeasibilityPage() {
                  <FormField control={form.control} name="courierRate" render={({ field }) => (
                     <FormItem><FormLabel>Courier Rate</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
+                
+                <BreakEvenCard form={form} />
+
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Calculate & Save
@@ -185,3 +231,5 @@ export default function FeasibilityPage() {
     </>
   );
 }
+
+    

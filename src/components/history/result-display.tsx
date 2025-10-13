@@ -1,8 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { LaunchPlan, FeasibilityCheck } from "@/lib/types";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Button } from "../ui/button";
+import { Download } from "lucide-react";
 
 type ResultDisplayProps = {
   record: LaunchPlan | FeasibilityCheck;
@@ -29,6 +31,78 @@ const getStatusVariant = (status: LaunchPlan['profitStatus']) => {
     }
 };
 
+const handleDownloadCsv = (record: LaunchPlan | FeasibilityCheck) => {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    const universalHeaders = [
+        "Report ID", "Report Type", "Date Generated", "Product Name", "Category", 
+        "Sourcing Cost", "Selling Price", "Courier Rate", "Profit Status", "Summary"
+    ];
+
+    if (record.type === 'Launch') {
+        const launchRecord = record as LaunchPlan;
+        const headers = [...universalHeaders, "Marketing Budget", "Profit Per Unit", "Breakeven Units", "Profit Margin (%)", "Breakeven ROAS"];
+        const rows = [
+            headers.join(','),
+            [
+                launchRecord.id,
+                launchRecord.type,
+                `"${format(new Date(launchRecord.date), 'yyyy-MM-dd HH:mm:ss')}"`,
+                `"${launchRecord.productName}"`,
+                `"${launchRecord.category}"`,
+                launchRecord.sourcingCost,
+                launchRecord.sellingPrice,
+                launchRecord.courierRate,
+                launchRecord.profitStatus,
+                `"${launchRecord.summary}"`,
+                launchRecord.marketingBudget,
+                launchRecord.profitPerUnit,
+                launchRecord.breakevenUnits,
+                launchRecord.profitMargin.toFixed(2),
+                launchRecord.breakevenROAS.toFixed(2)
+            ].join(',')
+        ];
+        csvContent += rows.join('\n');
+    } else { // Feasibility
+        const feasibilityRecord = record as FeasibilityCheck;
+        const headers = [...universalHeaders, "Shopify Plan", "Shopify Monthly Cost (USD)", "Bank", "Debit Card Tax (%)", "Ad Budget", "Cost Per Conversion", "Total Monthly Fixed Costs", "Breakeven Conversions", "Net Profit", "Break-even Price"];
+        const rows = [
+            headers.join(','),
+            [
+                feasibilityRecord.id,
+                feasibilityRecord.type,
+                `"${format(new Date(feasibilityRecord.date), 'yyyy-MM-dd HH:mm:ss')}"`,
+                `"${feasibilityRecord.productName}"`,
+                `"${feasibilityRecord.category}"`,
+                feasibilityRecord.sourcingCost,
+                feasibilityRecord.sellingPrice,
+                feasibilityRecord.courierRate,
+                feasibilityRecord.profitStatus,
+                `"${feasibilityRecord.summary}"`,
+                feasibilityRecord.shopifyPlan,
+                feasibilityRecord.shopifyMonthlyCost,
+                feasibilityRecord.bank,
+                feasibilityRecord.debitCardTax,
+                feasibilityRecord.adBudget,
+                feasibilityRecord.costPerConversion,
+                feasibilityRecord.totalMonthlyFixedCosts,
+                feasibilityRecord.breakevenConversions,
+                feasibilityRecord.netProfit,
+                feasibilityRecord.breakEvenPrice
+            ].join(',')
+        ];
+        csvContent += rows.join('\n');
+    }
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `report-${record.productName.replace(/ /g, "_")}-${record.id}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+
 const LaunchResult = ({ record }: { record: LaunchPlan }) => (
     <>
     <CardHeader>
@@ -37,7 +111,7 @@ const LaunchResult = ({ record }: { record: LaunchPlan }) => (
                 <CardTitle className="text-3xl font-bold">{record.productName}</CardTitle>
                 <CardDescription className="mt-1">{record.category} &middot; Report from {format(new Date(record.date), 'PP')}</CardDescription>
             </div>
-            <Badge variant={getStatusVariant(record.profitStatus) as any} className="text-sm">{record.profitStatus}</Badge>
+            <Badge variant={getStatusVariant(record.profitStatus)} className="text-sm">{record.profitStatus}</Badge>
         </div>
     </CardHeader>
     <CardContent className="space-y-6">
@@ -74,7 +148,7 @@ const FeasibilityResult = ({ record }: { record: FeasibilityCheck }) => (
                 <CardTitle className="text-3xl font-bold">{record.productName}</CardTitle>
                 <CardDescription className="mt-1">{record.category} &middot; Report from {format(new Date(record.date), 'PP')}</CardDescription>
             </div>
-            <Badge variant={getStatusVariant(record.profitStatus) as any} className="text-sm">{record.profitStatus}</Badge>
+            <Badge variant={getStatusVariant(record.profitStatus)} className="text-sm">{record.profitStatus}</Badge>
         </div>
     </CardHeader>
     <CardContent className="space-y-6">
@@ -85,6 +159,7 @@ const FeasibilityResult = ({ record }: { record: FeasibilityCheck }) => (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <MetricCard label="Estimated Net Profit" value={record.netProfit} subtext="per month" />
             <MetricCard label="Breakeven Conversions" value={record.breakevenConversions} subtext="sales needed to break even per month" />
+            <MetricCard label="Break-even Price" value={record.breakEvenPrice} subtext="to cover per-unit costs" />
         </div>
         <Card>
             <CardHeader><CardTitle className="text-lg">Inputs</CardTitle></CardHeader>
@@ -109,6 +184,14 @@ export const ResultDisplay = ({ record }: ResultDisplayProps) => {
     return (
         <Card className="w-full">
             {record.type === 'Launch' ? <LaunchResult record={record as LaunchPlan} /> : <FeasibilityResult record={record as FeasibilityCheck} />}
+             <CardFooter className="flex-row-reverse border-t pt-6">
+                <Button onClick={() => handleDownloadCsv(record)}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Report (CSV)
+                </Button>
+            </CardFooter>
         </Card>
     );
 };
+
+    

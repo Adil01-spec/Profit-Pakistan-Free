@@ -39,6 +39,7 @@ export type FeasibilityCheck = BaseAnalysis & {
   totalMonthlyFixedCosts: number;
   breakevenConversions: number;
   netProfit: number;
+  breakEvenPrice: number;
 };
 
 export type HistoryRecord = LaunchPlan | FeasibilityCheck;
@@ -52,3 +53,5 @@ export interface AppSettings {
     banks: Bank[];
     taxRate: number;
 }
+
+    
