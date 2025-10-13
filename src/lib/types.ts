@@ -1,4 +1,5 @@
 export type ProfitStatus = 'Profitable' | 'Near Breakeven' | 'Loss';
+export type PaymentType = 'COD' | 'Online';
 
 export type BaseAnalysis = {
   id: string;
@@ -7,6 +8,8 @@ export type BaseAnalysis = {
   date: string; // ISO string
   profitStatus: ProfitStatus;
   summary: string;
+  paymentType: PaymentType;
+  fbrTax: number;
 };
 
 export type LaunchPlan = BaseAnalysis & {
@@ -53,5 +56,3 @@ export interface AppSettings {
     banks: Bank[];
     taxRate: number;
 }
-
-    

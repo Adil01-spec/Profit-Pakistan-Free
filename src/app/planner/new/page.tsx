@@ -16,13 +16,15 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Header } from '@/components/header';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info } from 'lucide-react';
 import type { LaunchPlan } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { PlannerResults } from '@/components/planner/planner-results';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const formSchema = z.object({
   productName: z.string().min(2, { message: 'Product name must be at least 2 characters.' }),
@@ -31,6 +33,7 @@ const formSchema = z.object({
   sellingPrice: z.coerce.number().min(1, { message: 'Selling price must be greater than 0.' }),
   marketingBudget: z.coerce.number().min(0, { message: 'Marketing budget must be a positive number.' }),
   courierRate: z.coerce.number().min(0, { message: 'Courier rate must be a positive number.' }),
+  paymentType: z.enum(['COD', 'Online']),
 }).refine(data => data.sellingPrice > data.sourcingCost, {
   message: "Selling price must be greater than sourcing cost.",
   path: ["sellingPrice"],
@@ -53,15 +56,20 @@ export default function PlannerPage() {
       sourcingCost: 0,
       sellingPrice: 0,
       marketingBudget: 0,
-      courierRate: 200,
+      courierRate: 250,
+      paymentType: 'COD',
     },
   });
 
   const watchedValues = form.watch();
+  const paymentType = form.watch('paymentType');
 
   const calculatedValues = useMemo(() => {
-    const { sourcingCost, sellingPrice, marketingBudget, courierRate } = watchedValues;
-    const profitPerUnit = sellingPrice - sourcingCost - courierRate;
+    const { sourcingCost, sellingPrice, marketingBudget, courierRate, paymentType } = watchedValues;
+    const fbrTaxRate = paymentType === 'COD' ? 0.02 : 0.01;
+    const fbrTax = sellingPrice * fbrTaxRate;
+    
+    const profitPerUnit = sellingPrice - sourcingCost - courierRate - fbrTax;
     const breakevenUnits = marketingBudget > 0 && profitPerUnit > 0 ? Math.ceil(marketingBudget / profitPerUnit) : 0;
     const profitMargin = sellingPrice > 0 ? (profitPerUnit / sellingPrice) * 100 : 0;
     const breakevenROAS = profitPerUnit > 0 ? sellingPrice / profitPerUnit : 0;
@@ -76,8 +84,25 @@ export default function PlannerPage() {
         summary = `The profit margin is low (${profitMargin.toFixed(1)}%). Be cautious with ad spend.`;
     }
 
-    return { profitPerUnit, breakevenUnits, profitMargin, breakevenROAS, profitStatus, summary };
+    const taxMessage = paymentType === 'COD' 
+        ? "A 2% FBR tax will be deducted by your courier as per Section 236Y." 
+        : "A 1% FBR tax applies on non-cash transactions as per FBR rules.";
+
+
+    return { profitPerUnit, breakevenUnits, profitMargin, breakevenROAS, profitStatus, summary, fbrTax, taxMessage };
   }, [watchedValues]);
+
+  const handlePaymentTypeChange = (value: 'COD' | 'Online') => {
+      form.setValue('paymentType', value);
+      const newCourierRate = value === 'COD' ? 250 : 200;
+      form.setValue('courierRate', newCourierRate, { shouldValidate: true });
+      toast({
+          title: value === 'COD' ? 'Reminder: 2% FBR Tax' : 'Reminder: 1% FBR Tax',
+          description: value === 'COD' 
+              ? '2% of your order value will be deducted by the courier under FBR rules.'
+              : '1% of your order value applies for online transactions.',
+      })
+  };
 
 
   async function onSubmit(values: PlannerFormValues) {
@@ -143,15 +168,55 @@ export default function PlannerPage() {
                         <FormMessage />
                         </FormItem>
                     )} />
-                    <FormField control={form.control} name="courierRate" render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Courier Rate (per delivery)</FormLabel>
-                        <FormControl><Input type="number" {...field} /></FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )} />
                 </div>
                 
+                <Card className="bg-muted/30">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Payment Type &amp; Courier</CardTitle>
+                        <CardDescription>Select payment type to apply correct tax and courier rates.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <FormField
+                            control={form.control}
+                            name="paymentType"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel className="flex items-center gap-2">
+                                    Payment Type
+                                     <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p className="max-w-xs">{calculatedValues.taxMessage}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </FormLabel>
+                                <Select onValueChange={(value: 'COD' | 'Online') => { field.onChange(value); handlePaymentTypeChange(value); }} defaultValue={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger><SelectValue placeholder="Select payment type" /></SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="COD">Cash on Delivery (COD)</SelectItem>
+                                        <SelectItem value="Online">Online / Non-COD</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField control={form.control} name="courierRate" render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Courier Rate (per delivery)</FormLabel>
+                            <FormControl><Input type="number" {...field} /></FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )} />
+                    </CardContent>
+                </Card>
+
                 <PlannerResults results={calculatedValues} />
 
                 <Button type="submit" className="w-full" disabled={isSubmitting}>

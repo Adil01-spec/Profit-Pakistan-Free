@@ -44,7 +44,8 @@ const handleDownloadCsv = (record: LaunchPlan | FeasibilityCheck) => {
     let csvContent = "data:text/csv;charset=utf-8,";
     const universalHeaders = [
         "Report ID", "Report Type", "Date Generated", "Product Name", "Category", 
-        "Sourcing Cost", "Selling Price", "Courier Rate", "Profit Status", "Summary"
+        "Sourcing Cost", "Selling Price", "Courier Rate", "Profit Status", "Summary",
+        "Payment Type", "FBR Tax"
     ];
 
     if (record.type === 'Launch') {
@@ -63,6 +64,8 @@ const handleDownloadCsv = (record: LaunchPlan | FeasibilityCheck) => {
                 launchRecord.courierRate,
                 launchRecord.profitStatus,
                 `"${launchRecord.summary}"`,
+                launchRecord.paymentType,
+                launchRecord.fbrTax.toFixed(2),
                 launchRecord.marketingBudget,
                 launchRecord.profitPerUnit,
                 launchRecord.breakevenUnits,
@@ -87,6 +90,8 @@ const handleDownloadCsv = (record: LaunchPlan | FeasibilityCheck) => {
                 feasibilityRecord.courierRate,
                 feasibilityRecord.profitStatus,
                 `"${feasibilityRecord.summary}"`,
+                feasibilityRecord.paymentType,
+                feasibilityRecord.fbrTax.toFixed(2),
                 feasibilityRecord.shopifyPlan,
                 feasibilityRecord.shopifyMonthlyCost,
                 feasibilityRecord.bank,
@@ -139,6 +144,7 @@ const handleDownloadPdf = (record: LaunchPlan | FeasibilityCheck, toast: any) =>
             const r = record as LaunchPlan;
             body.push(
                 ['Product Category', r.category],
+                ['Payment Type', r.paymentType],
                 ['Profit Status', r.profitStatus],
                 [{content: 'Key Metrics', styles: {fontStyle: 'bold', fillColor: isDark ? [40,40,40] : [240,240,240]}}],
                 ['Profit Margin', `${r.profitMargin.toFixed(1)}%`],
@@ -150,11 +156,13 @@ const handleDownloadPdf = (record: LaunchPlan | FeasibilityCheck, toast: any) =>
                 ['Selling Price', `PKR ${r.sellingPrice.toLocaleString()}`],
                 ['Marketing Budget', `PKR ${r.marketingBudget.toLocaleString()}`],
                 ['Courier Rate', `PKR ${r.courierRate.toLocaleString()}`],
+                ['FBR Tax (per unit)', `PKR ${r.fbrTax.toLocaleString()}`],
             );
         } else {
             const r = record as FeasibilityCheck;
             body.push(
                 ['Product Category', r.category],
+                ['Payment Type', r.paymentType],
                 ['Profit Status', r.profitStatus],
                 [{content: 'Key Metrics', styles: {fontStyle: 'bold', fillColor: isDark ? [40,40,40] : [240,240,240]}}],
                 ['Estimated Net Profit', `PKR ${r.netProfit.toLocaleString()}`],
@@ -168,6 +176,7 @@ const handleDownloadPdf = (record: LaunchPlan | FeasibilityCheck, toast: any) =>
                 ['Monthly Ad Budget', `PKR ${r.adBudget.toLocaleString()}`],
                 ['Cost per Conversion', `PKR ${r.costPerConversion.toLocaleString()}`],
                 ['Courier Rate', `PKR ${r.courierRate.toLocaleString()}`],
+                ['FBR Tax (per unit)', `PKR ${r.fbrTax.toLocaleString()}`],
             );
         }
 
@@ -183,6 +192,16 @@ const handleDownloadPdf = (record: LaunchPlan | FeasibilityCheck, toast: any) =>
                 }
             },
         });
+        
+        const finalY = (doc as any).lastAutoTable.finalY;
+        doc.setFontSize(8);
+        doc.setTextColor(isDark ? '#AAAAAA' : '#888888');
+        doc.text(
+            "Tax calculated as per latest FBR withholding rules (Section 236Y). For COD orders, 2% is deducted by courier; for online payments, 1% applies on transaction value.",
+            14,
+            finalY + 10
+        );
+
 
         doc.save(`report-${record.productName.replace(/ /g, "_")}-${record.id}.pdf`);
     }, 500);
@@ -217,6 +236,8 @@ const LaunchResult = ({ record }: { record: LaunchPlan }) => (
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Sourcing Cost</span><span>PKR {record.sourcingCost.toLocaleString()}</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Selling Price</span><span>PKR {record.sellingPrice.toLocaleString()}</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Monthly Marketing Budget</span><span>PKR {record.marketingBudget.toLocaleString()}</span></li>
+                    <li className="flex justify-between py-2"><span className="text-muted-foreground">Payment Type</span><span>{record.paymentType}</span></li>
+                    <li className="flex justify-between py-2"><span className="text-muted-foreground">FBR Tax (per unit)</span><span>PKR {record.fbrTax.toLocaleString()}</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Courier Rate</span><span>PKR {record.courierRate.toLocaleString()}</span></li>
                 </ul>
             </CardContent>
@@ -253,6 +274,8 @@ const FeasibilityResult = ({ record }: { record: FeasibilityCheck }) => (
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Sourcing Cost</span><span>PKR {record.sourcingCost.toLocaleString()}</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Selling Price</span><span>PKR {record.sellingPrice.toLocaleString()}</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Shopify Plan</span><span className="capitalize">{record.shopifyPlan} (${record.shopifyMonthlyCost})</span></li>
+                    <li className="flex justify-between py-2"><span className="text-muted-foreground">Payment Type</span><span>{record.paymentType}</span></li>
+                     <li className="flex justify-between py-2"><span className="text-muted-foreground">FBR Tax (per unit)</span><span>PKR {record.fbrTax.toLocaleString()}</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Bank</span><span>{record.bank} ({record.debitCardTax}%)</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Monthly Ad Budget</span><span>PKR {record.adBudget.toLocaleString()}</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Cost per Conversion</span><span>PKR {record.costPerConversion.toLocaleString()}</span></li>

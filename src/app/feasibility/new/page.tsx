@@ -12,14 +12,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Header } from '@/components/header';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info } from 'lucide-react';
 import type { FeasibilityCheck } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import { cn } from '@/lib/utils';
-
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const formSchema = z.object({
   productName: z.string().min(2),
@@ -33,6 +32,7 @@ const formSchema = z.object({
   courierRate: z.coerce.number().min(0),
   adBudget: z.coerce.number().min(0),
   costPerConversion: z.coerce.number().min(0),
+  paymentType: z.enum(['COD', 'Online']),
 }).refine(data => data.shopifyPlan === 'trial' || (data.shopifyMonthlyCost !== undefined && data.shopifyMonthlyCost > 0), {
   message: 'Please enter your Shopify monthly cost.',
   path: ['shopifyMonthlyCost'],
@@ -59,13 +59,15 @@ export default function FeasibilityPage() {
       shopifyPlan: 'trial',
       bank: settings.banks[0]?.name || '',
       debitCardTax: settings.banks[0]?.tax || 1.5,
-      courierRate: 200,
+      courierRate: 250,
       adBudget: 0,
       costPerConversion: 0,
+      paymentType: 'COD',
     },
   });
   
   const shopifyPlan = form.watch('shopifyPlan');
+  const watchedValues = form.watch();
 
   const handleBankChange = (bankName: string) => {
     const selectedBank = settings.banks.find(b => b.name === bankName);
@@ -74,20 +76,37 @@ export default function FeasibilityPage() {
     }
   };
 
+  const handlePaymentTypeChange = (value: 'COD' | 'Online') => {
+      form.setValue('paymentType', value);
+      const newCourierRate = value === 'COD' ? 250 : 200;
+      form.setValue('courierRate', newCourierRate, { shouldValidate: true });
+      toast({
+          title: value === 'COD' ? 'Reminder: 2% FBR Tax' : 'Reminder: 1% FBR Tax',
+          description: value === 'COD' 
+              ? '2% of your order value will be deducted by the courier under FBR rules.'
+              : '1% of your order value applies for online transactions.',
+      })
+  };
+
   const calculateFeasibility = (values: z.infer<typeof formSchema>) => {
-    const { adBudget, costPerConversion, sellingPrice, sourcingCost, courierRate } = values;
+    const { adBudget, costPerConversion, sellingPrice, sourcingCost, courierRate, paymentType } = values;
     const shopifyCost = values.shopifyPlan === 'trial' ? 1 * 300 : (values.shopifyMonthlyCost || 0) * 300; // Approx USD to PKR
       
     const totalMonthlyFixedCosts = shopifyCost + adBudget;
-    const profitPerSale = sellingPrice - sourcingCost - courierRate;
+
+    const fbrTaxRate = paymentType === 'COD' ? 0.02 : 0.01;
+    const fbrTax = sellingPrice * fbrTaxRate;
+    
+    const profitPerSale = sellingPrice - sourcingCost - courierRate - fbrTax;
     const breakevenConversions = totalMonthlyFixedCosts > 0 && profitPerSale > 0 ? Math.ceil(totalMonthlyFixedCosts / profitPerSale) : 0;
       
     const conversionsPerMonth = adBudget > 0 && costPerConversion > 0 ? adBudget / costPerConversion : 0;
     const totalRevenue = conversionsPerMonth * sellingPrice;
     const totalSourcingCost = conversionsPerMonth * sourcingCost;
     const totalCourierCost = conversionsPerMonth * courierRate;
+    const totalFbrTax = conversionsPerMonth * fbrTax;
 
-    const netProfit = totalRevenue - totalSourcingCost - totalCourierCost - totalMonthlyFixedCosts;
+    const netProfit = totalRevenue - totalSourcingCost - totalCourierCost - totalMonthlyFixedCosts - totalFbrTax;
 
     let profitStatus: FeasibilityCheck['profitStatus'] = 'Loss';
     let summary = "You're projected to be at a loss. You need more sales or lower costs to be profitable.";
@@ -99,7 +118,11 @@ export default function FeasibilityPage() {
         summary = `You're close to breaking even. A small improvement in sales or costs could make you profitable.`;
     }
 
-    const breakEvenPrice = sourcingCost + courierRate;
+    const breakEvenPrice = sourcingCost + courierRate + fbrTax;
+
+    const taxMessage = paymentType === 'COD' 
+        ? "A 2% FBR tax will be deducted by your courier as per Section 236Y." 
+        : "A 1% FBR tax applies on non-cash transactions as per FBR rules.";
 
     return {
         totalMonthlyFixedCosts,
@@ -108,15 +131,19 @@ export default function FeasibilityPage() {
         summary, 
         profitStatus,
         breakEvenPrice,
+        fbrTax,
+        taxMessage
     };
   }
+
+  const calculatedValues = useMemo(() => calculateFeasibility(watchedValues), [watchedValues]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     toast({ title: "Calculating...", description: "Running the numbers for your report." });
 
     setTimeout(() => {
-      const calculatedValues = calculateFeasibility(values);
+      const finalCalculatedValues = calculateFeasibility(values);
       
       const resultData: FeasibilityCheck = {
           id: uuidv4(),
@@ -124,7 +151,7 @@ export default function FeasibilityPage() {
           ...values,
           type: 'Feasibility',
           shopifyMonthlyCost: values.shopifyPlan === 'trial' ? 1 : (values.shopifyMonthlyCost || 0),
-          ...calculatedValues,
+          ...finalCalculatedValues,
       };
       
       addHistoryRecord(resultData);
@@ -172,17 +199,65 @@ export default function FeasibilityPage() {
                         <FormItem><FormLabel>Shopify Monthly Cost (USD)</FormLabel><FormControl><Input type="number" placeholder="e.g., 29" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                 )}
+
+                 <Card className="bg-muted/30">
+                    <CardHeader>
+                        <CardTitle className="text-lg">Payment Type, Courier & Taxes</CardTitle>
+                        <CardDescription>Select payment type to apply correct tax and courier rates.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <FormField
+                            control={form.control}
+                            name="paymentType"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel className="flex items-center gap-2">
+                                    Payment Type
+                                     <TooltipProvider>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                <p className="max-w-xs">{calculatedValues.taxMessage}</p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </FormLabel>
+                                <Select onValueChange={(value: 'COD' | 'Online') => { field.onChange(value); handlePaymentTypeChange(value); }} defaultValue={field.value}>
+                                    <FormControl>
+                                    <SelectTrigger><SelectValue placeholder="Select payment type" /></SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        <SelectItem value="COD">Cash on Delivery (COD)</SelectItem>
+                                        <SelectItem value="Online">Online / Non-COD</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        <FormField control={form.control} name="courierRate" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Courier Rate (per delivery)</FormLabel>
+                                <FormControl><Input type="number" {...field} /></FormControl>
+                                <FormMessage />
+                            </FormItem>
+                         )} />
+                        <FormField control={form.control} name="bank" render={({ field }) => (
+                            <FormItem><FormLabel>Bank for Payments</FormLabel>
+                            <Select onValueChange={(value) => { field.onChange(value); handleBankChange(value); }} defaultValue={field.value}>
+                                <FormControl><SelectTrigger><SelectValue placeholder="Select a bank" /></SelectTrigger></FormControl>
+                                <SelectContent>{settings.banks.map(b => <SelectItem key={b.name} value={b.name}>{b.name}</SelectItem>)}</SelectContent>
+                            </Select><FormMessage /></FormItem>
+                        )} />
+                        <FormField control={form.control} name="debitCardTax" render={({ field }) => (
+                            <FormItem><FormLabel>Debit Card Tax (%)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                        )} />
+                    </CardContent>
+                </Card>
+
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <FormField control={form.control} name="bank" render={({ field }) => (
-                        <FormItem><FormLabel>Bank for Payments</FormLabel>
-                        <Select onValueChange={(value) => { field.onChange(value); handleBankChange(value); }} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select a bank" /></SelectTrigger></FormControl>
-                            <SelectContent>{settings.banks.map(b => <SelectItem key={b.name} value={b.name}>{b.name}</SelectItem>)}</SelectContent>
-                        </Select><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={form.control} name="debitCardTax" render={({ field }) => (
-                        <FormItem><FormLabel>Debit Card Tax (%)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                    )} />
                     <FormField control={form.control} name="adBudget" render={({ field }) => (
                         <FormItem><FormLabel>Ad Budget (monthly)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
@@ -190,9 +265,6 @@ export default function FeasibilityPage() {
                         <FormItem><FormLabel>Cost per Conversion</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                 </div>
-                 <FormField control={form.control} name="courierRate" render={({ field }) => (
-                    <FormItem><FormLabel>Courier Rate</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
                 
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

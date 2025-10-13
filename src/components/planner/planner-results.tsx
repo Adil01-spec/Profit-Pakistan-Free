@@ -11,6 +11,7 @@ type PlannerResultsProps = {
     profitMargin: number;
     breakevenROAS: number;
     profitStatus: 'Profitable' | 'Near Breakeven' | 'Loss';
+    fbrTax: number;
   };
 };
 
@@ -36,7 +37,7 @@ const getStatusVariant = (status: PlannerResultsProps['results']['profitStatus']
 };
 
 export const PlannerResults = ({ results }: PlannerResultsProps) => {
-  const { profitPerUnit, breakevenUnits, profitMargin, breakevenROAS, profitStatus } = results;
+  const { profitPerUnit, breakevenUnits, profitMargin, breakevenROAS, profitStatus, fbrTax } = results;
 
   return (
     <Card className="mt-6 bg-muted/30">
@@ -49,7 +50,7 @@ export const PlannerResults = ({ results }: PlannerResultsProps) => {
           These values update automatically as you type.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <MetricDisplay
           label="Profit Margin"
           value={`${profitMargin.toFixed(1)}%`}
@@ -67,6 +68,10 @@ export const PlannerResults = ({ results }: PlannerResultsProps) => {
           label="Breakeven Units"
           value={breakevenUnits.toLocaleString()}
           subtext="To cover marketing"
+        />
+        <MetricDisplay
+          label="FBR Tax (per unit)"
+          value={`PKR ${fbrTax.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
         />
       </CardContent>
     </Card>
