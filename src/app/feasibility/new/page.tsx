@@ -67,8 +67,8 @@ const BreakEvenCard = ({ form }: { form: any }) => {
                     </p>
                     {sellingPrice > 0 && (
                          <div className={cn("mt-2 text-sm font-semibold", 
-                            isProfitable && "text-success",
-                            isBelowCost && "text-destructive"
+                            isProfitable && "text-green-600",
+                            isBelowCost && "text-red-600"
                          )}>
                              {isProfitable && "Profitable Margin!"}
                              {isBelowCost && "You’re selling below cost!"}
@@ -231,5 +231,3 @@ export default function FeasibilityPage() {
     </>
   );
 }
-
-    
