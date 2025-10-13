@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/header';
 import { Loader2 } from 'lucide-react';
 import type { FeasibilityCheck } from '@/lib/types';
@@ -44,13 +44,10 @@ const formSchema = z.object({
 const BreakEvenCard = ({ form }: { form: any }) => {
     const { sourcingCost, courierRate, sellingPrice } = form.watch();
     
-    // This calculation only considers per-unit variable costs.
     const breakEvenPrice = useMemo(() => {
         return (sourcingCost || 0) + (courierRate || 0);
     }, [sourcingCost, courierRate]);
 
-    // Profitability is determined by whether the selling price covers the per-unit costs.
-    // The profitability status considering fixed costs (like ads) is determined on submission.
     const isProfitable = sellingPrice > breakEvenPrice;
     const isAtBreakeven = sellingPrice === breakEvenPrice;
     const isBelowCost = sellingPrice > 0 && sellingPrice < breakEvenPrice;
@@ -60,7 +57,7 @@ const BreakEvenCard = ({ form }: { form: any }) => {
             <CardHeader>
                 <CardTitle>Per-Unit Break-even Analysis</CardTitle>
                 <CardDescription>
-                    The minimum price you need to sell at to cover your sourcing and courier costs for a single unit. This does not include fixed monthly costs like ads or Shopify fees.
+                    The minimum price to cover your sourcing and courier costs for a single unit. This does not include fixed monthly costs like ads or Shopify fees.
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -95,6 +92,7 @@ export default function FeasibilityPage() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: 'onChange',
     defaultValues: {
       productName: '',
       category: '',
@@ -118,59 +116,64 @@ export default function FeasibilityPage() {
     }
   };
 
+  const calculateFeasibility = (values: z.infer<typeof formSchema>) => {
+    const { adBudget, costPerConversion, sellingPrice, sourcingCost, courierRate } = values;
+    const shopifyCost = values.shopifyPlan === 'trial' ? 1 * 300 : (values.shopifyMonthlyCost || 0) * 300; // Approx USD to PKR
+      
+    const totalMonthlyFixedCosts = shopifyCost + adBudget;
+    const profitPerSale = sellingPrice - sourcingCost - courierRate;
+    const breakevenConversions = totalMonthlyFixedCosts > 0 && profitPerSale > 0 ? Math.ceil(totalMonthlyFixedCosts / profitPerSale) : 0;
+      
+    const conversionsPerMonth = adBudget > 0 && costPerConversion > 0 ? adBudget / costPerConversion : 0;
+    const totalRevenue = conversionsPerMonth * sellingPrice;
+    const totalSourcingCost = conversionsPerMonth * sourcingCost;
+    const totalCourierCost = conversionsPerMonth * courierRate;
+
+    const netProfit = totalRevenue - totalSourcingCost - totalCourierCost - totalMonthlyFixedCosts;
+
+    let profitStatus: FeasibilityCheck['profitStatus'] = 'Loss';
+    let summary = "You're projected to be at a loss. You need more sales or lower costs to be profitable.";
+    if (netProfit > 0) {
+        profitStatus = 'Profitable';
+        summary = `You are making an estimated profit of PKR ${netProfit.toLocaleString('en-US', {maximumFractionDigits: 0})}/month.`;
+    } else if (netProfit > -totalMonthlyFixedCosts * 0.2) { 
+        profitStatus = 'Near Breakeven';
+        summary = `You're close to breaking even. A small improvement in sales or costs could make you profitable.`;
+    }
+
+    const breakEvenPrice = sourcingCost + courierRate;
+
+    return {
+        totalMonthlyFixedCosts,
+        breakevenConversions,
+        netProfit,
+        summary, 
+        profitStatus,
+        breakEvenPrice,
+    };
+  }
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
     toast({ title: "Calculating...", description: "Running the numbers for your report." });
 
-    // Use a timeout to allow the toast to render before blocking the main thread
     setTimeout(() => {
-      const { adBudget, costPerConversion, sellingPrice, sourcingCost, courierRate } = values;
-      const shopifyCost = values.shopifyPlan === 'trial' ? 1 * 300 : (values.shopifyMonthlyCost || 0) * 300; // Approx USD to PKR
+      const calculatedValues = calculateFeasibility(values);
       
-      const totalMonthlyFixedCosts = shopifyCost + adBudget;
-      const profitPerSale = sellingPrice - sourcingCost - courierRate;
-      const breakevenConversions = totalMonthlyFixedCosts > 0 && profitPerSale > 0 ? Math.ceil(totalMonthlyFixedCosts / profitPerSale) : 0;
-      
-      const conversionsPerMonth = adBudget > 0 && costPerConversion > 0 ? adBudget / costPerConversion : 0;
-      const totalRevenue = conversionsPerMonth * sellingPrice;
-      const totalSourcingCost = conversionsPerMonth * sourcingCost;
-      const totalCourierCost = conversionsPerMonth * courierRate;
-
-      // Net profit calculation including all costs
-      const netProfit = totalRevenue - totalSourcingCost - totalCourierCost - totalMonthlyFixedCosts;
-
-      let profitStatus: FeasibilityCheck['profitStatus'] = 'Loss';
-      let summary = "You're projected to be at a loss. You need more sales or lower costs to be profitable.";
-      if (netProfit > 0) {
-          profitStatus = 'Profitable';
-          summary = `You are making an estimated profit of PKR ${netProfit.toLocaleString('en-US', {maximumFractionDigits: 0})}/month.`;
-      } else if (netProfit > -totalMonthlyFixedCosts * 0.2) { // Within 20% of breakeven
-          profitStatus = 'Near Breakeven';
-          summary = `You're close to breaking even. A small improvement in sales or costs could make you profitable.`;
-      }
-
-      // This is the break-even price for a single unit (variable costs only)
-      const breakEvenPrice = sourcingCost + courierRate;
-
       const resultData: FeasibilityCheck = {
           id: uuidv4(),
           date: new Date().toISOString(),
           ...values,
           type: 'Feasibility',
           shopifyMonthlyCost: values.shopifyPlan === 'trial' ? 1 : (values.shopifyMonthlyCost || 0),
-          totalMonthlyFixedCosts,
-          breakevenConversions,
-          netProfit,
-          summary, 
-          profitStatus,
-          breakEvenPrice, // This matches the on-screen calculation
+          ...calculatedValues,
       };
       
       addHistoryRecord(resultData);
       toast({ title: "Feasibility Report Saved ✅", description: "Your ad feasibility check has been saved locally."});
       router.push(`/history/${resultData.id}`);
       setIsSubmitting(false);
-    }, 500); // 500ms delay
+    }, 500);
   }
 
   return (

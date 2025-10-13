@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useHistory } from '@/hooks/use-history';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,6 +22,7 @@ import { Loader2 } from 'lucide-react';
 import type { LaunchPlan } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
+import { PlannerResults } from '@/components/planner/planner-results';
 
 const formSchema = z.object({
   productName: z.string().min(2, { message: 'Product name must be at least 2 characters.' }),
@@ -35,14 +36,17 @@ const formSchema = z.object({
   path: ["sellingPrice"],
 });
 
+export type PlannerFormValues = z.infer<typeof formSchema>;
+
 export default function PlannerPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { addHistoryRecord } = useHistory();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<PlannerFormValues>({
     resolver: zodResolver(formSchema),
+    mode: 'onChange',
     defaultValues: {
       productName: '',
       category: '',
@@ -53,12 +57,10 @@ export default function PlannerPage() {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsSubmitting(true);
+  const watchedValues = form.watch();
 
-    const { sourcingCost, sellingPrice, marketingBudget, courierRate } = values;
-    
-    // Calculation Logic
+  const calculatedValues = useMemo(() => {
+    const { sourcingCost, sellingPrice, marketingBudget, courierRate } = watchedValues;
     const profitPerUnit = sellingPrice - sourcingCost - courierRate;
     const breakevenUnits = marketingBudget > 0 && profitPerUnit > 0 ? Math.ceil(marketingBudget / profitPerUnit) : 0;
     const profitMargin = sellingPrice > 0 ? (profitPerUnit / sellingPrice) * 100 : 0;
@@ -74,22 +76,19 @@ export default function PlannerPage() {
         summary = `The profit margin is low (${profitMargin.toFixed(1)}%). Be cautious with ad spend.`;
     }
 
+    return { profitPerUnit, breakevenUnits, profitMargin, breakevenROAS, profitStatus, summary };
+  }, [watchedValues]);
+
+
+  async function onSubmit(values: PlannerFormValues) {
+    setIsSubmitting(true);
+
     const resultData: LaunchPlan = {
         id: uuidv4(),
         type: 'Launch',
         date: new Date().toISOString(),
-        productName: values.productName,
-        category: values.category,
-        sourcingCost,
-        sellingPrice,
-        marketingBudget,
-        courierRate,
-        profitPerUnit,
-        breakevenUnits,
-        profitMargin,
-        breakevenROAS,
-        profitStatus,
-        summary,
+        ...values,
+        ...calculatedValues
     };
 
     addHistoryRecord(resultData);
@@ -152,6 +151,9 @@ export default function PlannerPage() {
                         </FormItem>
                     )} />
                 </div>
+                
+                <PlannerResults results={calculatedValues} />
+
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Calculate & Save
