@@ -82,6 +82,10 @@ export default function FeasibilityPage() {
     }
   }, [paymentType, selectedCourier, form]);
 
+  useEffect(() => {
+    toast({ title: 'Recalculating...' });
+  }, [watchedValues, toast]);
+
   const handleBankChange = (bankName: string) => {
     const selectedBank = settings.banks.find(b => b.name === bankName);
     if (selectedBank) {
@@ -148,7 +152,6 @@ export default function FeasibilityPage() {
   }
 
   const calculatedValues = useMemo(() => {
-    toast({ title: 'Recalculating...' });
     return calculateFeasibility(watchedValues);
   }, [watchedValues]);
 
