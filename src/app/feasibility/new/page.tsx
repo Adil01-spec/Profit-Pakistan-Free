@@ -145,7 +145,7 @@ export default function FeasibilityPage() {
     watchedValues.shopifyPlan === 'trial' ? 1 : toNum(watchedValues.shopifyMonthlyCost);
     const paymentType = watchedValues.paymentType;
     
-    if (sellingPrice <= 0) {
+    if (sellingPrice <= 0 || sellingPrice <= sourcingCost) {
       setCalculatedValues(null);
       return;
     }
@@ -240,16 +240,21 @@ export default function FeasibilityPage() {
       : 'A 1% FBR tax applies on non-cash transactions as per FBR rules.';
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!calculatedValues) {
-        toast({
-            variant: 'destructive',
-            title: 'Cannot Save Report',
-            description: 'Please fill out the form to generate results before saving.',
-        });
-        return;
-    }
     
     setIsSaving(true);
+    
+    const result = await calculateFeasibilityAction(values);
+
+    if ('error' in result) {
+        toast({
+            variant: 'destructive',
+            title: 'Error Calculating',
+            description: result.error,
+        });
+        setIsSaving(false);
+        return;
+    }
+
     toast({
       title: 'Saving Report...',
       description: 'Your feasibility check is being saved.',
@@ -258,7 +263,8 @@ export default function FeasibilityPage() {
     const resultData: FeasibilityCheck = {
       id: uuidv4(),
       date: new Date().toISOString(),
-      ...calculatedValues,
+      ...values,
+      ...result,
     };
     addHistoryRecord(resultData);
     toast({
@@ -644,9 +650,9 @@ export default function FeasibilityPage() {
                       <CardContent>
                         <p
                           className={`text-2xl font-semibold ${
-                            calculatedValues.profitMargin > 15
+                            calculatedValues.profitStatus === 'Profitable'
                               ? 'text-green-500'
-                              : calculatedValues.profitMargin > 0
+                              : calculatedValues.profitStatus === 'Near Breakeven'
                               ? 'text-yellow-500'
                               : 'text-red-500'
                           }`}
@@ -676,3 +682,5 @@ export default function FeasibilityPage() {
     </>
   );
 }
+
+    

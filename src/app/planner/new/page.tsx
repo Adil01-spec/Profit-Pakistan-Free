@@ -154,7 +154,7 @@ export default function PlannerPage() {
     const courierRate = toNum(watchedValues.courierRate);
     const paymentType = watchedValues.paymentType;
     
-    if (sellingPrice <= sourcingCost) {
+    if (sellingPrice <= 0 || sellingPrice <= sourcingCost) {
         setCalculatedValues(null);
         return;
     }
@@ -444,3 +444,5 @@ export default function PlannerPage() {
     </>
   );
 }
+
+    
