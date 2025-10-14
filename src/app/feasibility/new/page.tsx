@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Header } from '@/components/header';
 import { Loader2, Info } from 'lucide-react';
 import type { FeasibilityCheck } from '@/lib/types';
@@ -82,20 +82,22 @@ export default function FeasibilityPage() {
     }
   }, [paymentType, selectedCourier, form]);
 
+  const watchedFormValues = form.watch();
+
   useEffect(() => {
     toast({ title: 'Recalculating...' });
   }, [
-    watchedValues.sourcingCost, 
-    watchedValues.sellingPrice, 
-    watchedValues.shopifyPlan, 
-    watchedValues.shopifyMonthlyCost,
-    watchedValues.bank,
-    watchedValues.debitCardTax,
-    watchedValues.courier,
-    watchedValues.courierRate,
-    watchedValues.adBudget,
-    watchedValues.costPerConversion,
-    watchedValues.paymentType,
+    watchedFormValues.sourcingCost, 
+    watchedFormValues.sellingPrice, 
+    watchedFormValues.shopifyPlan, 
+    watchedFormValues.shopifyMonthlyCost,
+    watchedFormValues.bank,
+    watchedFormValues.debitCardTax,
+    watchedFormValues.courier,
+    watchedFormValues.courierRate,
+    watchedFormValues.adBudget,
+    watchedFormValues.costPerConversion,
+    watchedFormValues.paymentType,
     toast
   ]);
 
@@ -227,7 +229,6 @@ export default function FeasibilityPage() {
                  <Card className="bg-muted/30">
                     <CardHeader>
                         <CardTitle className="text-lg">Courier, Payments & Taxes</CardTitle>
-                        <CardDescription>Select payment type and courier to apply correct rates and taxes.</CardDescription>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <FormField
@@ -322,5 +323,3 @@ export default function FeasibilityPage() {
     </>
   );
 }
-
-    
