@@ -18,7 +18,7 @@ import { Loader2, Info } from 'lucide-react';
 import type { FeasibilityCheck } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import { Tooltip, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { courierRates } from '@/lib/courier-rates';
 
 const formSchema = z.object({
@@ -147,7 +147,10 @@ export default function FeasibilityPage() {
     };
   }
 
-  const calculatedValues = useMemo(() => calculateFeasibility(watchedValues), [watchedValues]);
+  const calculatedValues = useMemo(() => {
+    toast({ title: 'Recalculating...' });
+    return calculateFeasibility(watchedValues);
+  }, [watchedValues]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
@@ -309,5 +312,3 @@ export default function FeasibilityPage() {
     </>
   );
 }
-
-    
