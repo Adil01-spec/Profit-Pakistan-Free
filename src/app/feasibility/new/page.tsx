@@ -72,7 +72,6 @@ export default function FeasibilityPage() {
   const shopifyPlan = form.watch('shopifyPlan');
   const paymentType = form.watch('paymentType');
   const selectedCourier = form.watch('courier');
-  const watchedValues = form.watch();
 
   useEffect(() => {
     const courier = selectedCourier as keyof typeof courierRates;
@@ -82,22 +81,22 @@ export default function FeasibilityPage() {
     }
   }, [paymentType, selectedCourier, form]);
 
-  const watchedFormValues = form.watch();
+  const watchedValues = form.watch();
   
   useEffect(() => {
     toast({ title: 'Recalculating...' });
   }, [
-    watchedFormValues.sourcingCost,
-    watchedFormValues.sellingPrice,
-    watchedFormValues.shopifyPlan,
-    watchedFormValues.shopifyMonthlyCost,
-    watchedFormValues.bank,
-    watchedFormValues.debitCardTax,
-    watchedFormValues.courier,
-    watchedFormValues.courierRate,
-    watchedFormValues.adBudget,
-    watchedFormValues.costPerConversion,
-    watchedFormValues.paymentType,
+    watchedValues.sourcingCost,
+    watchedValues.sellingPrice,
+    watchedValues.shopifyPlan,
+    watchedValues.shopifyMonthlyCost,
+    watchedValues.bank,
+    watchedValues.debitCardTax,
+    watchedValues.courier,
+    watchedValues.courierRate,
+    watchedValues.adBudget,
+    watchedValues.costPerConversion,
+    watchedValues.paymentType,
   ]);
 
   const handleBankChange = (bankName: string) => {
