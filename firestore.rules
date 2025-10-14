@@ -1,18 +1,139 @@
-rules_version='2'
-
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2025, 11, 11);
+
+    /**
+     * @description Controls access to user profile information.
+     * @path /users/{userId}
+     * @allow (read) Authenticated user can read any user profile.
+     * @allow (create) Authenticated user can create their own profile (userId matches auth.uid).
+     * @allow (update) Authenticated user can update their own profile (userId matches auth.uid).
+     * @allow (delete) Authenticated user can delete their own profile (userId matches auth.uid).
+     * @deny (create) Authenticated user cannot create a profile for another user.
+     * @deny (update) Authenticated user cannot update another user's profile.
+     * @deny (delete) Authenticated user cannot delete another user's profile.
+     * @principle Enforces document ownership for writes and allows public reads.
+     */
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if false; // Listing all users is not permitted.
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
     }
+
+    /**
+     * @description Controls access to user-generated reports.
+     * @path /users/{userId}/reports/{reportId}
+     * @allow (read) Authenticated user can read their own reports.
+     * @allow (create) Authenticated user can create reports under their own user ID.
+     * @allow (update) Authenticated user can update reports under their own user ID.
+     * @allow (delete) Authenticated user can delete reports under their own user ID.
+     * @deny (read) Authenticated user cannot read reports belonging to another user.
+     * @deny (create) Authenticated user cannot create reports under another user's ID.
+     * @deny (update) Authenticated user cannot update reports belonging to another user.
+     * @deny (delete) Authenticated user cannot delete reports belonging to another user.
+     * @principle Restricts access to a user's own data tree.
+     */
+    match /users/{userId}/reports/{reportId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if isSignedIn() && isOwner(userId);
+    }
+
+    /**
+     * @description Controls access to courier rates data, which can only be managed by admins.
+     * @path /courierRates/{courierRateId}
+     * @allow (read) Anyone can read courier rates.
+     * @allow (create) Only admins can create courier rates.
+     * @allow (update) Only admins can update courier rates.
+     * @allow (delete) Only admins can delete courier rates.
+     * @deny (create) Non-admins cannot create courier rates.
+     * @deny (update) Non-admins cannot update courier rates.
+     * @deny (delete) Non-admins cannot delete courier rates.
+     * @principle Enforces admin-only access for configuration data.
+     */
+    match /courierRates/{courierRateId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn() && isAdmin();
+      allow update: if isSignedIn() && isAdmin();
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    /**
+     * @description Controls access to FBR rates data, which can only be managed by admins.
+     * @path /fbrRates/{fbrRateId}
+     * @allow (read) Anyone can read FBR rates.
+     * @allow (create) Only admins can create FBR rates.
+     * @allow (update) Only admins can update FBR rates.
+     * @allow (delete) Only admins can delete FBR rates.
+     * @deny (create) Non-admins cannot create FBR rates.
+     * @deny (update) Non-admins cannot update FBR rates.
+     * @deny (delete) Non-admins cannot delete FBR rates.
+     * @principle Enforces admin-only access for configuration data.
+     */
+    match /fbrRates/{fbrRateId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn() && isAdmin();
+      allow update: if isSignedIn() && isAdmin();
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    /**
+     * @description Controls access to bank fees data, which can only be managed by admins.
+     * @path /bankFees/{bankFeeId}
+     * @allow (read) Anyone can read bank fees.
+     * @allow (create) Only admins can create bank fees.
+     * @allow (update) Only admins can update bank fees.
+     * @allow (delete) Only admins can delete bank fees.
+     * @deny (create) Non-admins cannot create bank fees.
+     * @deny (update) Non-admins cannot update bank fees.
+     * @deny (delete) Non-admins cannot delete bank fees.
+     * @principle Enforces admin-only access for configuration data.
+     */
+    match /bankFees/{bankFeeId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn() && isAdmin();
+      allow update: if isSignedIn() && isAdmin();
+      allow delete: if isSignedIn() && isAdmin();
+    }
+
+    /**
+     * @description Controls access to Shopify plans data, which can only be managed by admins.
+     * @path /shopifyPlans/{shopifyPlanId}
+     * @allow (read) Anyone can read Shopify plans.
+     * @allow (create) Only admins can create Shopify plans.
+     * @allow (update) Only admins can update Shopify plans.
+     * @allow (delete) Only admins can delete Shopify plans.
+     * @deny (create) Non-admins cannot create Shopify plans.
+     * @deny (update) Non-admins cannot update Shopify plans.
+     * @deny (delete) Non-admins cannot delete Shopify plans.
+     * @principle Enforces admin-only access for configuration data.
+     */
+    match /shopifyPlans/{shopifyPlanId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn() && isAdmin();
+      allow update: if isSignedIn() && isAdmin();
+      allow delete: if isSignedIn() && isAdmin();
+    }
+  }
+
+  // Helper Functions
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return request.auth.uid == userId;
+  }
+
+  function isAdmin() {
+    return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
   }
 }
