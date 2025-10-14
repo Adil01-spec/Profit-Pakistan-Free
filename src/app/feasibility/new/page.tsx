@@ -21,6 +21,29 @@ import { v4 as uuidv4 } from 'uuid';
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { courierRates } from '@/lib/courier-rates';
 
+// Helper function to safely format numbers
+const formatNumber = (num: any, decimals = 0) => {
+  const parsed = parseFloat(num);
+  if (typeof parsed === "number" && !isNaN(parsed)) {
+    return parsed.toLocaleString('en-US', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  }
+  return "—";
+};
+const formatNumberWithDecimals = (num: any, decimals = 1) => {
+    const parsed = parseFloat(num);
+    if (typeof parsed === "number" && !isNaN(parsed)) {
+      return parsed.toLocaleString('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      });
+    }
+    return "—";
+};
+
+
 const formSchema = z.object({
   productName: z.string().min(2),
   category: z.string().min(2),
@@ -82,25 +105,13 @@ export default function FeasibilityPage() {
     }
   }, [paymentType, selectedCourier, form]);
   
+  const formValuesString = JSON.stringify(watchedValues);
   useEffect(() => {
     if (form.formState.isDirty) {
       toast({ title: 'Recalculating...' });
     }
-  }, [
-    watchedValues.sourcingCost,
-    watchedValues.sellingPrice,
-    watchedValues.shopifyPlan,
-    watchedValues.shopifyMonthlyCost,
-    watchedValues.bank,
-    watchedValues.debitCardTax,
-    watchedValues.courier,
-    watchedValues.courierRate,
-    watchedValues.adBudget,
-    watchedValues.costPerConversion,
-    watchedValues.paymentType,
-    form.formState.isDirty,
-    toast,
-  ]);
+  }, [formValuesString, form.formState.isDirty, toast]);
+
 
   const handleBankChange = (bankName: string) => {
     const selectedBank = settings.banks.find(b => b.name === bankName);
@@ -114,8 +125,15 @@ export default function FeasibilityPage() {
   };
 
   const calculateFeasibility = (values: z.infer<typeof formSchema>) => {
-    const { adBudget, costPerConversion, sellingPrice, sourcingCost, courierRate, paymentType } = values;
-    const shopifyCost = values.shopifyPlan === 'trial' ? 1 * 300 : (values.shopifyMonthlyCost || 0) * 300; // Approx USD to PKR
+    const sourcingCost = parseFloat(String(values.sourcingCost)) || 0;
+    const sellingPrice = parseFloat(String(values.sellingPrice)) || 0;
+    const adBudget = parseFloat(String(values.adBudget)) || 0;
+    const costPerConversion = parseFloat(String(values.costPerConversion)) || 0;
+    const courierRate = parseFloat(String(values.courierRate)) || 0;
+    const shopifyMonthlyCost = parseFloat(String(values.shopifyMonthlyCost)) || 0;
+    const paymentType = values.paymentType;
+    
+    const shopifyCost = values.shopifyPlan === 'trial' ? 1 * 300 : shopifyMonthlyCost * 300; // Approx USD to PKR
       
     const totalMonthlyFixedCosts = shopifyCost + adBudget;
 
@@ -153,16 +171,16 @@ export default function FeasibilityPage() {
         : "A 1% FBR tax applies on non-cash transactions as per FBR rules.";
 
     return {
-        totalMonthlyFixedCosts,
-        breakevenConversions,
-        netProfit,
+        totalMonthlyFixedCosts: totalMonthlyFixedCosts || 0,
+        breakevenConversions: breakevenConversions || 0,
+        netProfit: netProfit || 0,
         summary, 
         profitStatus,
-        breakEvenPrice,
-        fbrTax,
+        breakEvenPrice: breakEvenPrice || 0,
+        fbrTax: fbrTax || 0,
         taxMessage,
-        profitMargin,
-        roas,
+        profitMargin: profitMargin || 0,
+        roas: roas || 0,
     };
   }
 
@@ -200,6 +218,7 @@ export default function FeasibilityPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl font-bold">Ad Feasibility Calculator</CardTitle>
+            <CardDescription>Calculations update automatically as you type.</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -325,7 +344,7 @@ export default function FeasibilityPage() {
                         </CardHeader>
                         <CardContent>
                         <p className={`text-2xl font-bold ${calculatedValues.netProfit > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                            PKR {calculatedValues.netProfit.toLocaleString('en-US', {maximumFractionDigits: 0})}
+                            PKR {formatNumber(calculatedValues.netProfit)}
                         </p>
                         </CardContent>
                     </Card>
@@ -336,7 +355,7 @@ export default function FeasibilityPage() {
                         <CardDescription>How efficiently your ad spend performs</CardDescription>
                         </CardHeader>
                         <CardContent>
-                        <p className="text-2xl font-bold">{calculatedValues.roas.toFixed(1)}%</p>
+                        <p className="text-2xl font-bold">{formatNumberWithDecimals(calculatedValues.roas)}%</p>
                         </CardContent>
                     </Card>
 
@@ -346,7 +365,7 @@ export default function FeasibilityPage() {
                         <CardDescription>Percentage profit on your selling price</CardDescription>
                         </CardHeader>
                         <CardContent>
-                        <p className="text-2xl font-bold">{calculatedValues.profitMargin.toFixed(1)}%</p>
+                        <p className="text-2xl font-bold">{formatNumberWithDecimals(calculatedValues.profitMargin)}%</p>
                         </CardContent>
                     </Card>
 
@@ -356,7 +375,7 @@ export default function FeasibilityPage() {
                         <CardDescription>Minimum selling price to avoid loss</CardDescription>
                         </CardHeader>
                         <CardContent>
-                        <p className="text-2xl font-bold">PKR {calculatedValues.breakEvenPrice?.toFixed(0) || '—'}</p>
+                        <p className="text-2xl font-bold">PKR {formatNumber(calculatedValues.breakEvenPrice)}</p>
                         </CardContent>
                     </Card>
 

@@ -27,6 +27,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { courierRates } from '@/lib/courier-rates';
 
+// Helper function to safely format numbers
+const formatNumber = (num: any, decimals = 0) => {
+  const parsed = parseFloat(num);
+  if (typeof parsed === "number" && !isNaN(parsed)) {
+    return parsed.toLocaleString('en-US', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  }
+  return "—";
+};
+
 const formSchema = z.object({
   productName: z.string().min(2, { message: 'Product name must be at least 2 characters.' }),
   category: z.string().min(2, { message: 'Category must be at least 2 characters.' }),
@@ -77,7 +89,12 @@ export default function PlannerPage() {
   }, [paymentType, selectedCourier, form]);
 
   const calculatedValues = useMemo(() => {
-    const { sourcingCost, sellingPrice, marketingBudget, courierRate, paymentType } = watchedValues;
+    const sourcingCost = parseFloat(String(watchedValues.sourcingCost)) || 0;
+    const sellingPrice = parseFloat(String(watchedValues.sellingPrice)) || 0;
+    const marketingBudget = parseFloat(String(watchedValues.marketingBudget)) || 0;
+    const courierRate = parseFloat(String(watchedValues.courierRate)) || 0;
+    const paymentType = watchedValues.paymentType;
+    
     const fbrTaxRate = paymentType === 'COD' ? 0.02 : 0.01;
     const fbrTax = sellingPrice * fbrTaxRate;
     
@@ -101,7 +118,16 @@ export default function PlannerPage() {
         : "A 1% FBR tax applies on non-cash transactions as per FBR rules.";
 
 
-    return { profitPerUnit, breakevenUnits, profitMargin, breakevenROAS, profitStatus, summary, fbrTax, taxMessage };
+    return { 
+        profitPerUnit: profitPerUnit || 0,
+        breakevenUnits: breakevenUnits || 0,
+        profitMargin: profitMargin || 0,
+        breakevenROAS: breakevenROAS || 0,
+        profitStatus,
+        summary,
+        fbrTax: fbrTax || 0,
+        taxMessage
+    };
   }, [watchedValues]);
 
   const handlePaymentTypeChange = (value: 'COD' | 'Online') => {

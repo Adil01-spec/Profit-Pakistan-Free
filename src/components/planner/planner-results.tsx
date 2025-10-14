@@ -4,6 +4,28 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
+// Helper function to safely format numbers
+const formatNumber = (num: any, decimals = 0) => {
+  const parsed = parseFloat(num);
+  if (typeof parsed === "number" && !isNaN(parsed)) {
+    return parsed.toLocaleString('en-US', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  }
+  return "—";
+};
+const formatNumberWithDecimals = (num: any, decimals = 1) => {
+    const parsed = parseFloat(num);
+    if (typeof parsed === "number" && !isNaN(parsed)) {
+      return parsed.toLocaleString('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      });
+    }
+    return "—";
+};
+
 type PlannerResultsProps = {
   results: {
     profitPerUnit: number;
@@ -53,25 +75,25 @@ export const PlannerResults = ({ results }: PlannerResultsProps) => {
       <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <MetricDisplay
           label="Profit Margin"
-          value={`${profitMargin.toFixed(1)}%`}
+          value={`${formatNumberWithDecimals(profitMargin)}%`}
         />
         <MetricDisplay
           label="Profit per Unit"
-          value={`PKR ${profitPerUnit.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
+          value={`PKR ${formatNumber(profitPerUnit, 2)}`}
         />
         <MetricDisplay
           label="Breakeven ROAS"
-          value={`1:${breakevenROAS.toFixed(2)}`}
+          value={`1:${formatNumber(breakevenROAS, 2)}`}
           subtext="Sell Price / Profit"
         />
         <MetricDisplay
           label="Breakeven Units"
-          value={breakevenUnits.toLocaleString()}
+          value={formatNumber(breakevenUnits)}
           subtext="To cover marketing"
         />
         <MetricDisplay
           label="FBR Tax (per unit)"
-          value={`PKR ${fbrTax.toLocaleString('en-US', { maximumFractionDigits: 2 })}`}
+          value={`PKR ${formatNumber(fbrTax, 2)}`}
         />
       </CardContent>
     </Card>
