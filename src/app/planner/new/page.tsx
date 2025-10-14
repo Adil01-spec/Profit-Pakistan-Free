@@ -142,8 +142,6 @@ export default function PlannerPage() {
     form.setValue('paymentType', value);
   };
   
-  const memoizedSetCalculatedValues = useCallback(setCalculatedValues, []);
-
   useEffect(() => {
     const toNum = (val: any): number => {
         const n = parseFloat(val);
@@ -157,7 +155,7 @@ export default function PlannerPage() {
     const paymentType = watchedValues.paymentType;
     
     if (sellingPrice <= sourcingCost) {
-        memoizedSetCalculatedValues(null);
+        setCalculatedValues(null);
         return;
     }
 
@@ -185,7 +183,7 @@ export default function PlannerPage() {
       )}%). Be cautious with ad spend.`;
     }
 
-     memoizedSetCalculatedValues({
+     setCalculatedValues({
         ...watchedValues,
         profitPerUnit,
         breakevenUnits,
@@ -196,7 +194,7 @@ export default function PlannerPage() {
         fbrTax,
     });
 
-  }, [watchedValues.sourcingCost, watchedValues.sellingPrice, watchedValues.marketingBudget, watchedValues.courierRate, watchedValues.paymentType, memoizedSetCalculatedValues]);
+  }, [watchedValues]);
 
 
   async function onSubmit(values: PlannerFormValues) {
