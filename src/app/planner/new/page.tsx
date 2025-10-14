@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -194,7 +195,13 @@ export default function PlannerPage() {
         fbrTax,
     });
 
-  }, [watchedValues]);
+  }, [
+    watchedValues.sourcingCost,
+    watchedValues.sellingPrice,
+    watchedValues.marketingBudget,
+    watchedValues.courierRate,
+    watchedValues.paymentType,
+  ]);
 
 
   async function onSubmit(values: PlannerFormValues) {
@@ -444,5 +451,3 @@ export default function PlannerPage() {
     </>
   );
 }
-
-    

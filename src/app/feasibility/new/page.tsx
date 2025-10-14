@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -208,7 +209,16 @@ export default function FeasibilityPage() {
         roas: 0,
     });
 
-  }, [watchedValues]);
+  }, [
+    watchedValues.sourcingCost,
+    watchedValues.sellingPrice,
+    watchedValues.adBudget,
+    watchedValues.costPerConversion,
+    watchedValues.courierRate,
+    watchedValues.shopifyPlan,
+    watchedValues.shopifyMonthlyCost,
+    watchedValues.paymentType,
+  ]);
 
 
   const shopifyPlan = watchedValues.shopifyPlan;
@@ -682,5 +692,3 @@ export default function FeasibilityPage() {
     </>
   );
 }
-
-    
