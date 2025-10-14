@@ -12,7 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Header } from '@/components/header';
 import { Loader2, Info } from 'lucide-react';
 import type { FeasibilityCheck } from '@/lib/types';
@@ -77,19 +77,19 @@ export default function FeasibilityPage() {
   useEffect(() => {
     const courier = selectedCourier as keyof typeof courierRates;
     if (courier && courier !== 'Other') {
-        const rate = courierRates[courier][paymentType];
+        const rate = courierRates[courier][paymentType as 'COD' | 'Online'];
         form.setValue('courierRate', rate, { shouldValidate: true });
     }
   }, [paymentType, selectedCourier, form]);
 
   const watchedFormValues = form.watch();
-
+  
   useEffect(() => {
     toast({ title: 'Recalculating...' });
   }, [
-    watchedFormValues.sourcingCost, 
-    watchedFormValues.sellingPrice, 
-    watchedFormValues.shopifyPlan, 
+    watchedFormValues.sourcingCost,
+    watchedFormValues.sellingPrice,
+    watchedFormValues.shopifyPlan,
     watchedFormValues.shopifyMonthlyCost,
     watchedFormValues.bank,
     watchedFormValues.debitCardTax,
@@ -98,7 +98,6 @@ export default function FeasibilityPage() {
     watchedFormValues.adBudget,
     watchedFormValues.costPerConversion,
     watchedFormValues.paymentType,
-    toast
   ]);
 
   const handleBankChange = (bankName: string) => {
@@ -131,6 +130,9 @@ export default function FeasibilityPage() {
     const totalFbrTax = conversionsPerMonth * fbrTax;
 
     const netProfit = totalRevenue - totalSourcingCost - totalCourierCost - totalMonthlyFixedCosts - totalFbrTax;
+    
+    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+    const roas = adBudget > 0 ? (totalRevenue / adBudget) * 100 : 0;
 
     let profitStatus: FeasibilityCheck['profitStatus'] = 'Loss';
     let summary = "You're projected to be at a loss. You need more sales or lower costs to be profitable.";
@@ -156,7 +158,9 @@ export default function FeasibilityPage() {
         profitStatus,
         breakEvenPrice,
         fbrTax,
-        taxMessage
+        taxMessage,
+        profitMargin,
+        roas,
     };
   }
 
@@ -311,6 +315,74 @@ export default function FeasibilityPage() {
                     )} />
                 </div>
                 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <Card>
+                        <CardHeader>
+                        <CardTitle>Total Profit</CardTitle>
+                        <CardDescription>Net profit after all deductions</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                        <p className={`text-2xl font-bold ${calculatedValues.netProfit > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                            PKR {calculatedValues.netProfit.toLocaleString('en-US', {maximumFractionDigits: 0})}
+                        </p>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                        <CardTitle>ROAS (Return on Ad Spend)</CardTitle>
+                        <CardDescription>How efficiently your ad spend performs</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                        <p className="text-2xl font-bold">{calculatedValues.roas.toFixed(1)}%</p>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                        <CardTitle>Profit Margin</CardTitle>
+                        <CardDescription>Percentage profit on your selling price</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                        <p className="text-2xl font-bold">{calculatedValues.profitMargin.toFixed(1)}%</p>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                        <CardTitle>Break-even Point</CardTitle>
+                        <CardDescription>Minimum selling price to avoid loss</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                        <p className="text-2xl font-bold">PKR {calculatedValues.breakEvenPrice?.toFixed(0) || '—'}</p>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="col-span-1 md:col-span-2 text-center">
+                        <CardHeader>
+                        <CardTitle>Feasibility Verdict</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                        <p
+                            className={`text-2xl font-semibold ${
+                            calculatedValues.profitMargin > 15
+                                ? 'text-green-500'
+                                : calculatedValues.profitMargin > 0
+                                ? 'text-yellow-500'
+                                : 'text-red-500'
+                            }`}
+                        >
+                            {calculatedValues.profitMargin > 15
+                            ? 'Profitable ✅'
+                            : calculatedValues.profitMargin > 0
+                            ? 'Near Break-even ⚠️'
+                            : 'Loss Making ❌'}
+                        </p>
+                        </CardContent>
+                    </Card>
+                </div>
+
+
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Calculate & Save

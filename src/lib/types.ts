@@ -45,6 +45,8 @@ costPerConversion: number;
   breakevenConversions: number;
   netProfit: number;
   breakEvenPrice: number;
+  profitMargin: number;
+  roas: number;
 };
 
 export type HistoryRecord = LaunchPlan | FeasibilityCheck;
@@ -58,5 +60,3 @@ export interface AppSettings {
     banks: Bank[];
     taxRate: number;
 }
-
-    
