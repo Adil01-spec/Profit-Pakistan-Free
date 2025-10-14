@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useHistory } from '@/hooks/use-history';
 import { Button } from '@/components/ui/button';
 import {
@@ -55,6 +55,16 @@ const formatNumber = (num: any, decimals = 0) => {
     });
   }
   return '—';
+};
+const formatNumberWithDecimals = (num: any, decimals = 1) => {
+    const parsed = parseFloat(num);
+    if (typeof parsed === 'number' && !isNaN(parsed)) {
+        return parsed.toLocaleString('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+        });
+    }
+    return '—';
 };
 
 const formSchema = z
@@ -131,6 +141,8 @@ export default function PlannerPage() {
   const handlePaymentTypeChange = (value: 'COD' | 'Online') => {
     form.setValue('paymentType', value);
   };
+  
+  const memoizedSetCalculatedValues = useCallback(setCalculatedValues, []);
 
   useEffect(() => {
     const toNum = (val: any): number => {
@@ -145,7 +157,7 @@ export default function PlannerPage() {
     const paymentType = watchedValues.paymentType;
     
     if (sellingPrice <= sourcingCost) {
-        setCalculatedValues(null);
+        memoizedSetCalculatedValues(null);
         return;
     }
 
@@ -173,7 +185,7 @@ export default function PlannerPage() {
       )}%). Be cautious with ad spend.`;
     }
 
-     setCalculatedValues({
+     memoizedSetCalculatedValues({
         ...watchedValues,
         profitPerUnit,
         breakevenUnits,
@@ -184,29 +196,33 @@ export default function PlannerPage() {
         fbrTax,
     });
 
-  }, [watchedValues]);
+  }, [watchedValues.sourcingCost, watchedValues.sellingPrice, watchedValues.marketingBudget, watchedValues.courierRate, watchedValues.paymentType, memoizedSetCalculatedValues]);
 
 
   async function onSubmit(values: PlannerFormValues) {
-    if (!calculatedValues) {
-        toast({
-            variant: 'destructive',
-            title: 'Cannot Save Report',
-            description: 'Please fill out the form to generate results before saving.',
-        });
-        return;
-    }
-    
     setIsSaving(true);
     toast({
       title: 'Saving Report...',
       description: 'Your product launch plan is being saved.',
     });
 
+    const result = await calculateLaunchPlanAction(values);
+
+    if ('error' in result) {
+      toast({
+        variant: 'destructive',
+        title: 'Error Calculating',
+        description: result.error,
+      });
+      setIsSaving(false);
+      return;
+    }
+    
     const resultData: LaunchPlan = {
         id: uuidv4(),
         date: new Date().toISOString(),
-        ...calculatedValues
+        ...values,
+        ...result,
     };
     
     addHistoryRecord(resultData);
