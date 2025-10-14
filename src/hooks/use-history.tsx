@@ -7,6 +7,7 @@ interface HistoryContextType {
     history: HistoryRecord[];
     setHistory: (history: HistoryRecord[] | ((prev: HistoryRecord[]) => HistoryRecord[])) => void;
     addHistoryRecord: (record: HistoryRecord) => void;
+    removeHistoryRecord: (recordId: string) => void;
     clearHistory: () => void;
     loading: boolean;
 }
@@ -20,11 +21,15 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
         setHistory(prev => [record, ...(prev ?? [])]);
     };
 
+    const removeHistoryRecord = (recordId: string) => {
+        setHistory(prev => (prev ?? []).filter(r => r.id !== recordId));
+    };
+
     const clearHistory = () => {
         setHistory([]);
     };
     
-    const value = { history: history ?? [], setHistory, addHistoryRecord, clearHistory, loading: isLoading };
+    const value = { history: history ?? [], setHistory, addHistoryRecord, removeHistoryRecord, clearHistory, loading: isLoading };
 
     return <HistoryContext.Provider value={value}>{children}</HistoryContext.Provider>;
 }

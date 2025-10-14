@@ -2,12 +2,27 @@
 
 import type { HistoryRecord } from '@/lib/types';
 import Link from 'next/link';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Lightbulb, BarChart3, ChevronRight } from 'lucide-react';
+import { Lightbulb, BarChart3, ChevronRight, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { useHistory } from '@/hooks/use-history';
+
 
 interface HistoryListProps {
   history: HistoryRecord[];
@@ -15,6 +30,33 @@ interface HistoryListProps {
 }
 
 export function HistoryList({ history, loading }: HistoryListProps) {
+  const { toast } = useToast();
+  const { removeHistoryRecord } = useHistory();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (reportId: string) => {
+    setDeletingId(reportId);
+    try {
+      // For a client-side only app, we just update the local state.
+      // If there was a backend, we'd call `deleteDoc` here.
+      removeHistoryRecord(reportId);
+      toast({
+        title: 'Report Deleted 🗑️',
+        description: 'The report has been permanently removed.',
+      });
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      toast({
+        title: 'Deletion Failed',
+        description: 'Something went wrong while deleting this report.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+
   if (loading) {
     return (
       <div className="space-y-4 p-4">
@@ -54,40 +96,71 @@ export function HistoryList({ history, loading }: HistoryListProps) {
   return (
     <div className="divide-y">
       {history.map((record) => (
-        <Link
-          href={`/history/${record.id}`}
-          key={record.id}
-          className="block transition-colors hover:bg-muted/50"
-        >
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-4">
-              <div
-                className={cn('rounded-full p-2', {
-                  'bg-green-100 dark:bg-green-900/30': record.type === 'Launch',
-                  'bg-blue-100 dark:bg-blue-900/30': record.type === 'Feasibility',
-                })}
-              >
-                {record.type === 'Launch' ? (
-                  <Lightbulb className="h-5 w-5 text-green-600 dark:text-green-400" />
-                ) : (
-                  <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                )}
+        <div key={record.id} className="group relative transition-colors hover:bg-muted/50">
+          <Link
+            href={`/history/${record.id}`}
+            className="block"
+          >
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center gap-4">
+                <div
+                  className={cn('rounded-full p-2', {
+                    'bg-green-100 dark:bg-green-900/30': record.type === 'Launch',
+                    'bg-blue-100 dark:bg-blue-900/30': record.type === 'Feasibility',
+                  })}
+                >
+                  {record.type === 'Launch' ? (
+                    <Lightbulb className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  )}
+                </div>
+                <div>
+                  <p className="font-semibold">{record.productName}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {format(new Date(record.date), 'PP')} &middot; {record.category}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="font-semibold">{record.productName}</p>
-                <p className="text-sm text-muted-foreground">
-                  {format(new Date(record.date), 'PP')} &middot; {record.category}
-                </p>
+              <div className="flex items-center gap-4">
+                <Badge variant={getStatusVariant(record.profitStatus) as any}>
+                  {record.profitStatus}
+                </Badge>
+                <ChevronRight className="h-5 w-5 text-muted-foreground transition-opacity group-hover:opacity-0" />
               </div>
             </div>
-            <div className="flex items-center gap-4">
-              <Badge variant={getStatusVariant(record.profitStatus) as any}>
-                {record.profitStatus}
-              </Badge>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </div>
+          </Link>
+
+           <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100">
+             <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the report
+                    for "{record.productName}".
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className={cn(buttonVariants({variant: "destructive"}))}
+                    onClick={(e) => { e.preventDefault(); handleDelete(record.id)}}
+                    disabled={deletingId === record.id}
+                  >
+                    {deletingId === record.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Delete Report
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
-        </Link>
+        </div>
       ))}
     </div>
   );
