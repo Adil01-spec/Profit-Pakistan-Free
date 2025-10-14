@@ -1,13 +1,16 @@
+
 'use client';
 import { AppSettings } from "@/lib/types";
 import { defaultBanks } from "@/lib/banks";
+import { defaultShopifyPlans } from "@/lib/shopify-plans";
 import { createContext, useContext, ReactNode } from "react";
 import useLocalStorageState from 'use-local-storage-state';
 
-const SettingsContext = createContext<[AppSettings, React.Dispatch<React.SetStateAction<AppSettings>>, {isPersistent: boolean;}] | undefined>(undefined);
+const SettingsContext = createContext<[AppSettings, (newValue: AppSettings | ((prevState: AppSettings) => AppSettings)) => void, {isPersistent: boolean;}] | undefined>(undefined);
 
 const defaultSettings: AppSettings = {
     banks: defaultBanks,
+    shopifyPlans: defaultShopifyPlans,
     taxRate: 5,
 };
 
@@ -16,7 +19,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         defaultValue: defaultSettings
     });
 
-    const value: [AppSettings, React.Dispatch<React.SetStateAction<AppSettings>>, {isPersistent: boolean;}] = [settings, setSettings, { isPersistent }];
+    const value: [AppSettings, (newValue: AppSettings | ((prevState: AppSettings) => AppSettings)) => void, {isPersistent: boolean;}] = [settings ?? defaultSettings, setSettings, { isPersistent }];
 
     return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
@@ -28,3 +31,5 @@ export const useSettings = () => {
   }
   return context;
 };
+
+    

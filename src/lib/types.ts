@@ -1,3 +1,4 @@
+
 export type ProfitStatus = 'Profitable' | 'Near Breakeven' | 'Loss';
 export type PaymentType = 'COD' | 'Online';
 
@@ -58,7 +59,15 @@ export type Bank = {
   tax: number;
 };
 
+export type ShopifyPlan = {
+    plan: string;
+    costPerMonth: number;
+}
+
 export interface AppSettings {
     banks: Bank[];
+    shopifyPlans: ShopifyPlan[];
     taxRate: number;
 }
+
+    

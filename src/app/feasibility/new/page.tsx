@@ -45,7 +45,6 @@ import {
   TooltipContent,
 } from '@/components/ui/tooltip';
 import { courierRates } from '@/lib/courier-rates';
-import { calculateFeasibilityAction } from '@/app/actions/calculateProfit';
 
 // Helper function to safely format numbers
 const formatNumber = (num: any, decimals = 0) => {
@@ -119,6 +118,7 @@ export default function FeasibilityPage() {
       sourcingCost: 0,
       sellingPrice: 0,
       shopifyPlan: 'trial',
+      shopifyMonthlyCost: settings.shopifyPlans.find(p => p.plan === 'Regular')?.costPerMonth,
       bank: settings.banks[0]?.name || '',
       debitCardTax: settings.banks[0]?.tax || 1.5,
       courier: 'TCS',
@@ -129,7 +129,15 @@ export default function FeasibilityPage() {
     },
   });
 
-  const watchedValues = form.watch();
+  const { watch, setValue } = form;
+  const watchedSourcingCost = watch('sourcingCost');
+  const watchedSellingPrice = watch('sellingPrice');
+  const watchedAdBudget = watch('adBudget');
+  const watchedCostPerConversion = watch('costPerConversion');
+  const watchedCourierRate = watch('courierRate');
+  const watchedShopifyPlan = watch('shopifyPlan');
+  const watchedShopifyMonthlyCost = watch('shopifyMonthlyCost');
+  const watchedPaymentType = watch('paymentType');
 
   useEffect(() => {
     const toNum = (val: any): number => {
@@ -137,14 +145,14 @@ export default function FeasibilityPage() {
       return isFinite(n) ? n : 0;
     };
     
-    const sourcingCost = toNum(watchedValues.sourcingCost);
-    const sellingPrice = toNum(watchedValues.sellingPrice);
-    const adBudget = toNum(watchedValues.adBudget);
-    const costPerConversion = toNum(watchedValues.costPerConversion);
-    const courierRate = toNum(watchedValues.courierRate);
+    const sourcingCost = toNum(watchedSourcingCost);
+    const sellingPrice = toNum(watchedSellingPrice);
+    const adBudget = toNum(watchedAdBudget);
+    const costPerConversion = toNum(watchedCostPerConversion);
+    const courierRate = toNum(watchedCourierRate);
     const shopifyMonthlyCost =
-    watchedValues.shopifyPlan === 'trial' ? 1 : toNum(watchedValues.shopifyMonthlyCost);
-    const paymentType = watchedValues.paymentType;
+    watchedShopifyPlan === 'trial' ? 1 : toNum(watchedShopifyMonthlyCost);
+    const paymentType = watchedPaymentType;
     
     if (sellingPrice <= 0 || sellingPrice <= sourcingCost) {
       setCalculatedValues(null);
@@ -195,7 +203,7 @@ export default function FeasibilityPage() {
     const breakEvenPrice = sourcingCost + courierRate + fbrTax;
 
     setCalculatedValues({
-        ...watchedValues,
+        ...(form.getValues()),
         totalMonthlyFixedCosts,
         breakevenConversions,
         netProfit,
@@ -210,38 +218,39 @@ export default function FeasibilityPage() {
     });
 
   }, [
-    watchedValues.sourcingCost,
-    watchedValues.sellingPrice,
-    watchedValues.adBudget,
-    watchedValues.costPerConversion,
-    watchedValues.courierRate,
-    watchedValues.shopifyPlan,
-    watchedValues.shopifyMonthlyCost,
-    watchedValues.paymentType,
+    watchedSourcingCost,
+    watchedSellingPrice,
+    watchedAdBudget,
+    watchedCostPerConversion,
+    watchedCourierRate,
+    watchedShopifyPlan,
+    watchedShopifyMonthlyCost,
+    watchedPaymentType,
+    form,
   ]);
 
 
-  const shopifyPlan = watchedValues.shopifyPlan;
-  const paymentType = watchedValues.paymentType;
-  const selectedCourier = watchedValues.courier;
+  const shopifyPlan = watch('shopifyPlan');
+  const paymentType = watch('paymentType');
+  const selectedCourier = watch('courier');
 
   useEffect(() => {
     const courier = selectedCourier as keyof typeof courierRates;
     if (courier && courier !== 'Other') {
       const rate = courierRates[courier][paymentType as 'COD' | 'Online'];
-      form.setValue('courierRate', rate, { shouldValidate: true });
+      setValue('courierRate', rate, { shouldValidate: true });
     }
-  }, [paymentType, selectedCourier, form]);
+  }, [paymentType, selectedCourier, setValue]);
 
   const handleBankChange = (bankName: string) => {
     const selectedBank = settings.banks.find((b) => b.name === bankName);
     if (selectedBank) {
-      form.setValue('debitCardTax', selectedBank.tax);
+      setValue('debitCardTax', selectedBank.tax);
     }
   };
 
   const handlePaymentTypeChange = (value: 'COD' | 'Online') => {
-    form.setValue('paymentType', value);
+    setValue('paymentType', value);
   };
 
   const taxMessage =
@@ -250,40 +259,42 @@ export default function FeasibilityPage() {
       : 'A 1% FBR tax applies on non-cash transactions as per FBR rules.';
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    
     setIsSaving(true);
     
-    const result = await calculateFeasibilityAction(values);
-
-    if ('error' in result) {
+    if (!calculatedValues) {
         toast({
             variant: 'destructive',
-            title: 'Error Calculating',
-            description: result.error,
+            title: 'Calculation Missing',
+            description: 'Please fill out the form to see calculations before saving.',
         });
         setIsSaving(false);
         return;
     }
 
-    toast({
-      title: 'Saving Report...',
-      description: 'Your feasibility check is being saved.',
-    });
-
-    const resultData: FeasibilityCheck = {
-      id: uuidv4(),
-      date: new Date().toISOString(),
-      ...values,
-      ...result,
-    };
-    addHistoryRecord(resultData);
-    toast({
-      title: 'Report Saved ✅',
-      description: 'Your ad feasibility check has been saved.',
-    });
-    router.push(`/history/${resultData.id}`);
-
-    setIsSaving(false);
+    try {
+        const resultData: FeasibilityCheck = {
+          id: uuidv4(),
+          date: new Date().toISOString(),
+          type: 'Feasibility',
+          ...values,
+          ...calculatedValues,
+        };
+        addHistoryRecord(resultData);
+        toast({
+          title: 'Report Saved ✅',
+          description: `Your feasibility check for "${values.productName}" has been saved.`,
+        });
+        router.push(`/history/${resultData.id}`);
+    } catch(err) {
+        console.error("Error saving report:", err);
+        toast({
+            title: "Error Saving Report",
+            description: "Something went wrong while saving your report.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSaving(false);
+    }
   }
 
   return (
@@ -692,3 +703,5 @@ export default function FeasibilityPage() {
     </>
   );
 }
+
+    

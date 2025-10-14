@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useHistory } from '@/hooks/use-history';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,7 +44,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { courierRates } from '@/lib/courier-rates';
-import { calculateLaunchPlanAction } from '@/app/actions/calculateProfit';
 
 // Helper function to safely format numbers
 const formatNumber = (num: any, decimals = 0) => {
@@ -97,7 +96,7 @@ const formSchema = z
   });
 
 export type PlannerFormValues = z.infer<typeof formSchema>;
-type CalculatedValues = Omit<LaunchPlan, 'id' | 'date'> | null;
+type CalculatedValues = Omit<LaunchPlan, 'id' | 'date' | 'type'> | null;
 
 export default function PlannerPage() {
   const router = useRouter();
@@ -122,25 +121,29 @@ export default function PlannerPage() {
     },
   });
 
-  const paymentType = form.watch('paymentType');
-  const selectedCourier = form.watch('courier');
-  const watchedValues = form.watch();
+  const { watch, setValue } = form;
+  const watchedSourcingCost = watch('sourcingCost');
+  const watchedSellingPrice = watch('sellingPrice');
+  const watchedMarketingBudget = watch('marketingBudget');
+  const watchedCourierRate = watch('courierRate');
+  const watchedPaymentType = watch('paymentType');
+  const selectedCourier = watch('courier');
 
   useEffect(() => {
     const courier = selectedCourier as keyof typeof courierRates;
     if (courier && courier !== 'Other') {
-      const rate = courierRates[courier][paymentType];
-      form.setValue('courierRate', rate, { shouldValidate: true });
+      const rate = courierRates[courier][watchedPaymentType];
+      setValue('courierRate', rate, { shouldValidate: true });
     }
-  }, [paymentType, selectedCourier, form]);
+  }, [watchedPaymentType, selectedCourier, setValue]);
 
   const taxMessage =
-    paymentType === 'COD'
+    watchedPaymentType === 'COD'
       ? 'A 2% FBR tax will be deducted by your courier as per Section 236Y.'
       : 'A 1% FBR tax applies on non-cash transactions as per FBR rules.';
 
   const handlePaymentTypeChange = (value: 'COD' | 'Online') => {
-    form.setValue('paymentType', value);
+    setValue('paymentType', value);
   };
   
   useEffect(() => {
@@ -149,11 +152,11 @@ export default function PlannerPage() {
         return isFinite(n) ? n : 0;
     };
     
-    const sourcingCost = toNum(watchedValues.sourcingCost);
-    const sellingPrice = toNum(watchedValues.sellingPrice);
-    const marketingBudget = toNum(watchedValues.marketingBudget);
-    const courierRate = toNum(watchedValues.courierRate);
-    const paymentType = watchedValues.paymentType;
+    const sourcingCost = toNum(watchedSourcingCost);
+    const sellingPrice = toNum(watchedSellingPrice);
+    const marketingBudget = toNum(watchedMarketingBudget);
+    const courierRate = toNum(watchedCourierRate);
+    const paymentType = watchedPaymentType;
     
     if (sellingPrice <= 0 || sellingPrice <= sourcingCost) {
         setCalculatedValues(null);
@@ -185,7 +188,7 @@ export default function PlannerPage() {
     }
 
      setCalculatedValues({
-        ...watchedValues,
+        ...(form.getValues()),
         profitPerUnit,
         breakevenUnits,
         profitMargin,
@@ -196,49 +199,54 @@ export default function PlannerPage() {
     });
 
   }, [
-    watchedValues.sourcingCost,
-    watchedValues.sellingPrice,
-    watchedValues.marketingBudget,
-    watchedValues.courierRate,
-    watchedValues.paymentType,
+    watchedSourcingCost,
+    watchedSellingPrice,
+    watchedMarketingBudget,
+    watchedCourierRate,
+    watchedPaymentType,
+    form,
   ]);
 
 
   async function onSubmit(values: PlannerFormValues) {
     setIsSaving(true);
-    toast({
-      title: 'Saving Report...',
-      description: 'Your product launch plan is being saved.',
-    });
 
-    const result = await calculateLaunchPlanAction(values);
-
-    if ('error' in result) {
-      toast({
-        variant: 'destructive',
-        title: 'Error Calculating',
-        description: result.error,
-      });
-      setIsSaving(false);
-      return;
+    if (!calculatedValues) {
+        toast({
+            variant: 'destructive',
+            title: 'Calculation Missing',
+            description: 'Please fill out the form to see calculations before saving.',
+        });
+        setIsSaving(false);
+        return;
     }
-    
-    const resultData: LaunchPlan = {
-        id: uuidv4(),
-        date: new Date().toISOString(),
-        ...values,
-        ...result,
-    };
-    
-    addHistoryRecord(resultData);
 
-    toast({
-      title: 'Report Saved ✅',
-      description: 'Your product launch plan has been saved.',
-    });
-    router.push(`/history/${resultData.id}`);
+    try {
+        const resultData: LaunchPlan = {
+            id: uuidv4(),
+            date: new Date().toISOString(),
+            type: 'Launch',
+            ...values,
+            ...calculatedValues,
+        };
+        
+        addHistoryRecord(resultData);
 
-    setIsSaving(false);
+        toast({
+          title: 'Report Saved ✅',
+          description: `Your launch plan for "${values.productName}" has been saved.`,
+        });
+        router.push(`/history/${resultData.id}`);
+    } catch (err) {
+        console.error("Error saving report:", err);
+        toast({
+            title: "Error Saving Report",
+            description: "Something went wrong while saving your report.",
+            variant: "destructive",
+        });
+    } finally {
+        setIsSaving(false);
+    }
   }
 
   return (
@@ -451,3 +459,5 @@ export default function PlannerPage() {
     </>
   );
 }
+
+    
