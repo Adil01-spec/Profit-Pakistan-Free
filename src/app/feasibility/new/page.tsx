@@ -105,7 +105,7 @@ export default function FeasibilityPage() {
   const { toast } = useToast();
   const { addHistoryRecord } = useHistory();
   const [settings, setSettings] = useSettings();
-  const [isCalculating, setIsCalculating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [calculatedValues, setCalculatedValues] =
     useState<CalculatedValues>(null);
 
@@ -128,9 +128,92 @@ export default function FeasibilityPage() {
     },
   });
 
-  const shopifyPlan = form.watch('shopifyPlan');
-  const paymentType = form.watch('paymentType');
-  const selectedCourier = form.watch('courier');
+  const watchedValues = form.watch();
+
+  useEffect(() => {
+    const toNum = (val: any): number => {
+      const n = parseFloat(val);
+      return isFinite(n) ? n : 0;
+    };
+    
+    const sourcingCost = toNum(watchedValues.sourcingCost);
+    const sellingPrice = toNum(watchedValues.sellingPrice);
+    const adBudget = toNum(watchedValues.adBudget);
+    const costPerConversion = toNum(watchedValues.costPerConversion);
+    const courierRate = toNum(watchedValues.courierRate);
+    const shopifyMonthlyCost =
+    watchedValues.shopifyPlan === 'trial' ? 1 : toNum(watchedValues.shopifyMonthlyCost);
+    const paymentType = watchedValues.paymentType;
+    
+    if (sellingPrice <= 0) {
+      setCalculatedValues(null);
+      return;
+    }
+
+    const shopifyCostPkr = shopifyMonthlyCost * 300;
+    const totalMonthlyFixedCosts = shopifyCostPkr + adBudget;
+    const fbrTaxRate = paymentType === 'COD' ? 0.02 : 0.01;
+    const fbrTax = sellingPrice * fbrTaxRate;
+    const profitPerSale = sellingPrice - sourcingCost - courierRate - fbrTax;
+    const breakevenConversions =
+      totalMonthlyFixedCosts > 0 && profitPerSale > 0
+        ? Math.ceil(totalMonthlyFixedCosts / profitPerSale)
+        : 0;
+
+    const conversionsPerMonth =
+      adBudget > 0 && costPerConversion > 0 ? adBudget / costPerConversion : 0;
+    const totalRevenue = conversionsPerMonth * sellingPrice;
+    const totalSourcingCost = conversionsPerMonth * sourcingCost;
+    const totalCourierCost = conversionsPerMonth * courierRate;
+    const totalFbrTax = conversionsPerMonth * fbrTax;
+
+    const netProfit =
+      totalRevenue -
+      totalSourcingCost -
+      totalCourierCost -
+      totalMonthlyFixedCosts -
+      totalFbrTax;
+
+    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+    const roasMultiplier = adBudget > 0 ? totalRevenue / adBudget : 0;
+    const roasPercent = roasMultiplier * 100;
+    
+    let profitStatus: 'Profitable' | 'Near Breakeven' | 'Loss' = 'Loss';
+    let summary = "You're projected to be at a loss. You need more sales or lower costs to be profitable.";
+    if (netProfit > 0) {
+      profitStatus = 'Profitable';
+      summary = `You are making an estimated profit of PKR ${netProfit.toLocaleString(
+        'en-US',
+        { maximumFractionDigits: 0 }
+      )}/month.`;
+    } else if (netProfit > -totalMonthlyFixedCosts * 0.2 && netProfit <= 0) {
+      profitStatus = 'Near Breakeven';
+      summary = `You're close to breaking even. A small improvement in sales or costs could make you profitable.`;
+    }
+
+    const breakEvenPrice = sourcingCost + courierRate + fbrTax;
+
+    setCalculatedValues({
+        ...watchedValues,
+        totalMonthlyFixedCosts,
+        breakevenConversions,
+        netProfit,
+        summary,
+        profitStatus,
+        breakEvenPrice,
+        fbrTax,
+        profitMargin,
+        roasMultiplier,
+        roasPercent,
+        roas: 0,
+    });
+
+  }, [watchedValues]);
+
+
+  const shopifyPlan = watchedValues.shopifyPlan;
+  const paymentType = watchedValues.paymentType;
+  const selectedCourier = watchedValues.courier;
 
   useEffect(() => {
     const courier = selectedCourier as keyof typeof courierRates;
@@ -157,37 +240,34 @@ export default function FeasibilityPage() {
       : 'A 1% FBR tax applies on non-cash transactions as per FBR rules.';
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsCalculating(true);
+    if (!calculatedValues) {
+        toast({
+            variant: 'destructive',
+            title: 'Cannot Save Report',
+            description: 'Please fill out the form to generate results before saving.',
+        });
+        return;
+    }
+    
+    setIsSaving(true);
     toast({
-      title: 'Calculating...',
-      description: 'Running the numbers for your report on the server.',
+      title: 'Saving Report...',
+      description: 'Your feasibility check is being saved.',
     });
 
-    const result = await calculateFeasibilityAction(values);
+    const resultData: FeasibilityCheck = {
+      id: uuidv4(),
+      date: new Date().toISOString(),
+      ...calculatedValues,
+    };
+    addHistoryRecord(resultData);
+    toast({
+      title: 'Report Saved ✅',
+      description: 'Your ad feasibility check has been saved.',
+    });
+    router.push(`/history/${resultData.id}`);
 
-    if ('error' in result) {
-      toast({
-        variant: 'destructive',
-        title: 'Calculation Error',
-        description: result.error,
-      });
-      setCalculatedValues(null);
-    } else {
-      const resultData: FeasibilityCheck = {
-        id: uuidv4(),
-        date: new Date().toISOString(),
-        ...result,
-      };
-      setCalculatedValues(result);
-      addHistoryRecord(resultData);
-      toast({
-        title: 'Report Saved ✅',
-        description: 'Your ad feasibility check has been saved.',
-      });
-      router.push(`/history/${resultData.id}`);
-    }
-
-    setIsCalculating(false);
+    setIsSaving(false);
   }
 
   return (
@@ -200,7 +280,7 @@ export default function FeasibilityPage() {
               Ad Feasibility Calculator
             </CardTitle>
             <CardDescription>
-              Enter your details and click "Calculate" to see your results.
+              Values update automatically as you type.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -571,11 +651,7 @@ export default function FeasibilityPage() {
                               : 'text-red-500'
                           }`}
                         >
-                          {calculatedValues.profitMargin > 15
-                            ? 'Profitable ✅'
-                            : calculatedValues.profitMargin > 0
-                            ? 'Near Break-even ⚠️'
-                            : 'Loss Making ❌'}
+                          {calculatedValues.profitStatus}
                         </p>
                       </CardContent>
                     </Card>
@@ -585,12 +661,12 @@ export default function FeasibilityPage() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isCalculating}
+                  disabled={isSaving}
                 >
-                  {isCalculating && (
+                  {isSaving && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Calculate & Save
+                  Save Report
                 </Button>
               </form>
             </Form>

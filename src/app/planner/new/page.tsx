@@ -91,7 +91,7 @@ type CalculatedValues = Omit<LaunchPlan, 'id' | 'date'> | null;
 export default function PlannerPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [isCalculating, setIsCalculating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const { addHistoryRecord } = useHistory();
   const [calculatedValues, setCalculatedValues] =
     useState<CalculatedValues>(null);
@@ -113,6 +113,7 @@ export default function PlannerPage() {
 
   const paymentType = form.watch('paymentType');
   const selectedCourier = form.watch('courier');
+  const watchedValues = form.watch();
 
   useEffect(() => {
     const courier = selectedCourier as keyof typeof courierRates;
@@ -131,38 +132,92 @@ export default function PlannerPage() {
     form.setValue('paymentType', value);
   };
 
-  async function onSubmit(values: PlannerFormValues) {
-    setIsCalculating(true);
-    toast({
-      title: 'Calculating...',
-      description: 'Running the numbers for your launch plan on the server.',
-    });
-
-    const result = await calculateLaunchPlanAction(values);
+  useEffect(() => {
+    const toNum = (val: any): number => {
+        const n = parseFloat(val);
+        return isFinite(n) ? n : 0;
+    };
     
-    if ('error' in result) {
-       toast({
-        variant: 'destructive',
-        title: 'Calculation Error',
-        description: result.error,
-      });
-      setCalculatedValues(null);
-    } else {
-       const resultData: LaunchPlan = {
-        id: uuidv4(),
-        date: new Date().toISOString(),
-        ...result
-      };
-      setCalculatedValues(result);
-      addHistoryRecord(resultData);
-      toast({
-        title: 'Report Saved ✅',
-        description: 'Your product launch plan has been saved.',
-      });
-      router.push(`/history/${resultData.id}`);
+    const sourcingCost = toNum(watchedValues.sourcingCost);
+    const sellingPrice = toNum(watchedValues.sellingPrice);
+    const marketingBudget = toNum(watchedValues.marketingBudget);
+    const courierRate = toNum(watchedValues.courierRate);
+    const paymentType = watchedValues.paymentType;
+    
+    if (sellingPrice <= sourcingCost) {
+        setCalculatedValues(null);
+        return;
     }
 
-    setIsCalculating(false);
+    const fbrTaxRate = paymentType === 'COD' ? 0.02 : 0.01;
+    const fbrTax = sellingPrice * fbrTaxRate;
+    const profitPerUnit = sellingPrice - sourcingCost - courierRate - fbrTax;
+    const breakevenUnits =
+      marketingBudget > 0 && profitPerUnit > 0
+        ? Math.ceil(marketingBudget / profitPerUnit)
+        : 0;
+    const profitMargin =
+      sellingPrice > 0 ? (profitPerUnit / sellingPrice) * 100 : 0;
+    const breakevenROAS = profitPerUnit > 0 ? sellingPrice / profitPerUnit : 0;
+    let profitStatus: 'Profitable' | 'Near Breakeven' | 'Loss' = 'Loss';
+    let summary = 'This product seems unprofitable at these metrics. Consider increasing the selling price or reducing costs.';
+    if (profitMargin > 15) {
+      profitStatus = 'Profitable';
+      summary = `With a ${profitMargin.toFixed(
+        1
+      )}% profit margin, this product looks promising.`;
+    } else if (profitMargin > 0) {
+      profitStatus = 'Near Breakeven';
+      summary = `The profit margin is low (${profitMargin.toFixed(
+        1
+      )}%). Be cautious with ad spend.`;
+    }
+
+     setCalculatedValues({
+        ...watchedValues,
+        profitPerUnit,
+        breakevenUnits,
+        profitMargin,
+        breakevenROAS,
+        profitStatus,
+        summary,
+        fbrTax,
+    });
+
+  }, [watchedValues]);
+
+
+  async function onSubmit(values: PlannerFormValues) {
+    if (!calculatedValues) {
+        toast({
+            variant: 'destructive',
+            title: 'Cannot Save Report',
+            description: 'Please fill out the form to generate results before saving.',
+        });
+        return;
+    }
+    
+    setIsSaving(true);
+    toast({
+      title: 'Saving Report...',
+      description: 'Your product launch plan is being saved.',
+    });
+
+    const resultData: LaunchPlan = {
+        id: uuidv4(),
+        date: new Date().toISOString(),
+        ...calculatedValues
+    };
+    
+    addHistoryRecord(resultData);
+
+    toast({
+      title: 'Report Saved ✅',
+      description: 'Your product launch plan has been saved.',
+    });
+    router.push(`/history/${resultData.id}`);
+
+    setIsSaving(false);
   }
 
   return (
@@ -175,7 +230,7 @@ export default function PlannerPage() {
               Product Launch Planner
             </CardTitle>
              <CardDescription>
-              Enter your details and click "Calculate" to see your results.
+              Values update automatically as you type.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -361,11 +416,11 @@ export default function PlannerPage() {
 
                 {calculatedValues && <PlannerResults results={calculatedValues} />}
 
-                <Button type="submit" className="w-full" disabled={isCalculating}>
-                  {isCalculating && (
+                <Button type="submit" className="w-full" disabled={isSaving}>
+                  {isSaving && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
-                  Calculate & Save
+                  Save Report
                 </Button>
               </form>
             </Form>
