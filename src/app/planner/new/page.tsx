@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useRouter } from 'next/navigation';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useHistory } from '@/hooks/use-history';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,50 +16,85 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Header } from '@/components/header';
 import { Loader2, Info } from 'lucide-react';
 import type { LaunchPlan } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { PlannerResults } from '@/components/planner/planner-results';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { courierRates } from '@/lib/courier-rates';
+import { calculateLaunchPlanAction } from '@/app/actions/calculateProfit';
 
 // Helper function to safely format numbers
 const formatNumber = (num: any, decimals = 0) => {
   const parsed = parseFloat(num);
-  if (typeof parsed === "number" && !isNaN(parsed)) {
+  if (typeof parsed === 'number' && !isNaN(parsed)) {
     return parsed.toLocaleString('en-US', {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     });
   }
-  return "—";
+  return '—';
 };
 
-const formSchema = z.object({
-  productName: z.string().min(2, { message: 'Product name must be at least 2 characters.' }),
-  category: z.string().min(2, { message: 'Category must be at least 2 characters.' }),
-  sourcingCost: z.coerce.number().min(0, { message: 'Sourcing cost must be a positive number.' }),
-  sellingPrice: z.coerce.number().min(1, { message: 'Selling price must be greater than 0.' }),
-  marketingBudget: z.coerce.number().min(0, { message: 'Marketing budget must be a positive number.' }),
-  courier: z.string().min(1),
-  courierRate: z.coerce.number().min(0, { message: 'Courier rate must be a positive number.' }),
-  paymentType: z.enum(['COD', 'Online']),
-}).refine(data => data.sellingPrice > data.sourcingCost, {
-  message: "Selling price must be greater than sourcing cost.",
-  path: ["sellingPrice"],
-});
+const formSchema = z
+  .object({
+    productName: z
+      .string()
+      .min(2, { message: 'Product name must be at least 2 characters.' }),
+    category: z
+      .string()
+      .min(2, { message: 'Category must be at least 2 characters.' }),
+    sourcingCost: z
+      .coerce.number()
+      .min(0, { message: 'Sourcing cost must be a positive number.' }),
+    sellingPrice: z
+      .coerce.number()
+      .min(1, { message: 'Selling price must be greater than 0.' }),
+    marketingBudget: z
+      .coerce.number()
+      .min(0, { message: 'Marketing budget must be a positive number.' }),
+    courier: z.string().min(1),
+    courierRate: z
+      .coerce.number()
+      .min(0, { message: 'Courier rate must be a positive number.' }),
+    paymentType: z.enum(['COD', 'Online']),
+  })
+  .refine((data) => data.sellingPrice > data.sourcingCost, {
+    message: 'Selling price must be greater than sourcing cost.',
+    path: ['sellingPrice'],
+  });
 
 export type PlannerFormValues = z.infer<typeof formSchema>;
+type CalculatedValues = Omit<LaunchPlan, 'id' | 'date'> | null;
 
 export default function PlannerPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
   const { addHistoryRecord } = useHistory();
+  const [calculatedValues, setCalculatedValues] =
+    useState<CalculatedValues>(null);
 
   const form = useForm<PlannerFormValues>({
     resolver: zodResolver(formSchema),
@@ -76,85 +111,58 @@ export default function PlannerPage() {
     },
   });
 
-  const watchedValues = form.watch();
   const paymentType = form.watch('paymentType');
   const selectedCourier = form.watch('courier');
 
   useEffect(() => {
     const courier = selectedCourier as keyof typeof courierRates;
     if (courier && courier !== 'Other') {
-        const rate = courierRates[courier][paymentType];
-        form.setValue('courierRate', rate, { shouldValidate: true });
+      const rate = courierRates[courier][paymentType];
+      form.setValue('courierRate', rate, { shouldValidate: true });
     }
   }, [paymentType, selectedCourier, form]);
 
-  const calculatedValues = useMemo(() => {
-    const sourcingCost = parseFloat(String(watchedValues.sourcingCost)) || 0;
-    const sellingPrice = parseFloat(String(watchedValues.sellingPrice)) || 0;
-    const marketingBudget = parseFloat(String(watchedValues.marketingBudget)) || 0;
-    const courierRate = parseFloat(String(watchedValues.courierRate)) || 0;
-    const paymentType = watchedValues.paymentType;
-    
-    const fbrTaxRate = paymentType === 'COD' ? 0.02 : 0.01;
-    const fbrTax = sellingPrice * fbrTaxRate;
-    
-    const profitPerUnit = sellingPrice - sourcingCost - courierRate - fbrTax;
-    const breakevenUnits = marketingBudget > 0 && profitPerUnit > 0 ? Math.ceil(marketingBudget / profitPerUnit) : 0;
-    const profitMargin = sellingPrice > 0 ? (profitPerUnit / sellingPrice) * 100 : 0;
-    const breakevenROAS = profitPerUnit > 0 ? sellingPrice / profitPerUnit : 0;
-    
-    let profitStatus: LaunchPlan['profitStatus'] = 'Loss';
-    let summary = "This product seems unprofitable at these metrics. Consider increasing the selling price or reducing costs.";
-    if (profitMargin > 15) {
-        profitStatus = 'Profitable';
-        summary = `With a ${profitMargin.toFixed(1)}% profit margin, this product looks promising.`;
-    } else if (profitMargin > 0) {
-        profitStatus = 'Near Breakeven';
-        summary = `The profit margin is low (${profitMargin.toFixed(1)}%). Be cautious with ad spend.`;
-    }
-
-    const taxMessage = paymentType === 'COD' 
-        ? "A 2% FBR tax will be deducted by your courier as per Section 236Y." 
-        : "A 1% FBR tax applies on non-cash transactions as per FBR rules.";
-
-
-    return { 
-        profitPerUnit: profitPerUnit || 0,
-        breakevenUnits: breakevenUnits || 0,
-        profitMargin: profitMargin || 0,
-        breakevenROAS: breakevenROAS || 0,
-        profitStatus,
-        summary,
-        fbrTax: fbrTax || 0,
-        taxMessage
-    };
-  }, [watchedValues]);
+  const taxMessage =
+    paymentType === 'COD'
+      ? 'A 2% FBR tax will be deducted by your courier as per Section 236Y.'
+      : 'A 1% FBR tax applies on non-cash transactions as per FBR rules.';
 
   const handlePaymentTypeChange = (value: 'COD' | 'Online') => {
-      form.setValue('paymentType', value);
-      toast({
-          title: value === 'COD' ? 'Reminder: 2% FBR Tax' : 'Reminder: 1% FBR Tax',
-          description: value === 'COD' 
-              ? '2% of your order value will be deducted by the courier under FBR rules.'
-              : '1% of your order value applies for online transactions.',
-      })
+    form.setValue('paymentType', value);
   };
 
-
   async function onSubmit(values: PlannerFormValues) {
-    setIsSubmitting(true);
+    setIsCalculating(true);
+    toast({
+      title: 'Calculating...',
+      description: 'Running the numbers for your launch plan on the server.',
+    });
 
-    const resultData: LaunchPlan = {
+    const result = await calculateLaunchPlanAction(values);
+    
+    if ('error' in result) {
+       toast({
+        variant: 'destructive',
+        title: 'Calculation Error',
+        description: result.error,
+      });
+      setCalculatedValues(null);
+    } else {
+       const resultData: LaunchPlan = {
         id: uuidv4(),
-        type: 'Launch',
         date: new Date().toISOString(),
-        ...values,
-        ...calculatedValues
-    };
+        ...result
+      };
+      setCalculatedValues(result);
+      addHistoryRecord(resultData);
+      toast({
+        title: 'Report Saved ✅',
+        description: 'Your product launch plan has been saved.',
+      });
+      router.push(`/history/${resultData.id}`);
+    }
 
-    addHistoryRecord(resultData);
-    toast({ title: "Report Saved ✅", description: "Your product launch plan has been saved locally."});
-    router.push(`/history/${resultData.id}`);
+    setIsCalculating(false);
   }
 
   return (
@@ -163,120 +171,200 @@ export default function PlannerPage() {
       <main className="container mx-auto max-w-2xl p-4 py-8">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl font-bold">Product Launch Planner</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              Product Launch Planner
+            </CardTitle>
+             <CardDescription>
+              Enter your details and click "Calculate" to see your results.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <FormField control={form.control} name="productName" render={({ field }) => (
-                        <FormItem className="sm:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="productName"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-2">
                         <FormLabel>Product Name</FormLabel>
-                        <FormControl><Input placeholder="e.g., Handcrafted Leather Wallet" {...field} /></FormControl>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., Handcrafted Leather Wallet"
+                            {...field}
+                          />
+                        </FormControl>
                         <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={form.control} name="category" render={({ field }) => (
-                        <FormItem className="sm:col-span-2">
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-2">
                         <FormLabel>Product Category</FormLabel>
-                        <FormControl><Input placeholder="e.g., Fashion Accessories" {...field} /></FormControl>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., Fashion Accessories"
+                            {...field}
+                          />
+                        </FormControl>
                         <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={form.control} name="sourcingCost" render={({ field }) => (
-                        <FormItem>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="sourcingCost"
+                    render={({ field }) => (
+                      <FormItem>
                         <FormLabel>Sourcing Cost (per unit)</FormLabel>
-                        <FormControl><Input type="number" placeholder="1000" {...field} /></FormControl>
+                        <FormControl>
+                          <Input type="number" placeholder="1000" {...field} />
+                        </FormControl>
                         <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={form.control} name="sellingPrice" render={({ field }) => (
-                        <FormItem>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="sellingPrice"
+                    render={({ field }) => (
+                      <FormItem>
                         <FormLabel>Expected Selling Price</FormLabel>
-                        <FormControl><Input type="number" placeholder="2500" {...field} /></FormControl>
+                        <FormControl>
+                          <Input type="number" placeholder="2500" {...field} />
+                        </FormControl>
                         <FormMessage />
-                        </FormItem>
-                    )} />
-                    <FormField control={form.control} name="marketingBudget" render={({ field }) => (
-                        <FormItem className="sm:col-span-2">
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="marketingBudget"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-2">
                         <FormLabel>Marketing Budget (monthly)</FormLabel>
-                        <FormControl><Input type="number" placeholder="50000" {...field} /></FormControl>
+                        <FormControl>
+                          <Input type="number" placeholder="50000" {...field} />
+                        </FormControl>
                         <FormMessage />
-                        </FormItem>
-                    )} />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-                
+
                 <Card className="bg-muted/30">
-                    <CardHeader>
-                        <CardTitle className="text-lg">Courier, Payments &amp; Taxes</CardTitle>
-                        <CardDescription>Select payment type and courier to apply correct rates and taxes.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <FormField
-                            control={form.control}
-                            name="paymentType"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel className="flex items-center gap-2">
-                                    Payment Type
-                                     <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p className="max-w-xs">{calculatedValues.taxMessage}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                </FormLabel>
-                                <Select onValueChange={(value: 'COD' | 'Online') => { field.onChange(value); handlePaymentTypeChange(value); }} defaultValue={field.value}>
-                                    <FormControl>
-                                    <SelectTrigger><SelectValue placeholder="Select payment type" /></SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="COD">Cash on Delivery (COD)</SelectItem>
-                                        <SelectItem value="Online">Online / Non-COD</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="courier"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Courier Company</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder="Select a courier" /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {Object.keys(courierRates).map(courierName => (
-                                                <SelectItem key={courierName} value={courierName}>{courierName}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField control={form.control} name="courierRate" render={({ field }) => (
-                            <FormItem className="sm:col-span-2">
-                            <FormLabel>Courier Rate (per delivery)</FormLabel>
-                            <FormControl><Input type="number" {...field} disabled={selectedCourier !== 'Other'} /></FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )} />
-                    </CardContent>
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                      Courier, Payments &amp; Taxes
+                    </CardTitle>
+                    <CardDescription>
+                      Select payment type and courier to apply correct rates
+                      and taxes.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="paymentType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="flex items-center gap-2">
+                            Payment Type
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">{taxMessage}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </FormLabel>
+                          <Select
+                            onValueChange={(value: 'COD' | 'Online') => {
+                              field.onChange(value);
+                              handlePaymentTypeChange(value);
+                            }}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select payment type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="COD">
+                                Cash on Delivery (COD)
+                              </SelectItem>
+                              <SelectItem value="Online">
+                                Online / Non-COD
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="courier"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Courier Company</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a courier" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {Object.keys(courierRates).map((courierName) => (
+                                <SelectItem
+                                  key={courierName}
+                                  value={courierName}
+                                >
+                                  {courierName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="courierRate"
+                      render={({ field }) => (
+                        <FormItem className="sm:col-span-2">
+                          <FormLabel>Courier Rate (per delivery)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              {...field}
+                              disabled={selectedCourier !== 'Other'}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </CardContent>
                 </Card>
 
-                <PlannerResults results={calculatedValues} />
+                {calculatedValues && <PlannerResults results={calculatedValues} />}
 
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Button type="submit" className="w-full" disabled={isCalculating}>
+                  {isCalculating && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
                   Calculate & Save
                 </Button>
               </form>
