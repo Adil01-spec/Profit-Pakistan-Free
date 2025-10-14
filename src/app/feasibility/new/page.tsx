@@ -84,7 +84,20 @@ export default function FeasibilityPage() {
 
   useEffect(() => {
     toast({ title: 'Recalculating...' });
-  }, [watchedValues, toast]);
+  }, [
+    watchedValues.sourcingCost, 
+    watchedValues.sellingPrice, 
+    watchedValues.shopifyPlan, 
+    watchedValues.shopifyMonthlyCost,
+    watchedValues.bank,
+    watchedValues.debitCardTax,
+    watchedValues.courier,
+    watchedValues.courierRate,
+    watchedValues.adBudget,
+    watchedValues.costPerConversion,
+    watchedValues.paymentType,
+    toast
+  ]);
 
   const handleBankChange = (bankName: string) => {
     const selectedBank = settings.banks.find(b => b.name === bankName);
@@ -95,12 +108,6 @@ export default function FeasibilityPage() {
 
   const handlePaymentTypeChange = (value: 'COD' | 'Online') => {
       form.setValue('paymentType', value);
-      toast({
-          title: value === 'COD' ? 'Reminder: 2% FBR Tax' : 'Reminder: 1% FBR Tax',
-          description: value === 'COD' 
-              ? '2% of your order value will be deducted by the courier under FBR rules.'
-              : '1% of your order value applies for online transactions.',
-      })
   };
 
   const calculateFeasibility = (values: z.infer<typeof formSchema>) => {
@@ -315,3 +322,5 @@ export default function FeasibilityPage() {
     </>
   );
 }
+
+    
