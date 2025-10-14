@@ -36,7 +36,7 @@ export type FeasibilityCheck = BaseAnalysis & {
   courier: string;
   courierRate: number;
   adBudget: number;
-costPerConversion: number;
+  costPerConversion: number;
   sellingPrice: number;
   sourcingCost: number;
 
@@ -47,6 +47,8 @@ costPerConversion: number;
   breakEvenPrice: number;
   profitMargin: number;
   roas: number;
+  roasMultiplier: number;
+  roasPercent: number;
 };
 
 export type HistoryRecord = LaunchPlan | FeasibilityCheck;

@@ -77,7 +77,7 @@ const handleDownloadCsv = (record: LaunchPlan | FeasibilityCheck) => {
         csvContent += rows.join('\n');
     } else { // Feasibility
         const feasibilityRecord = record as FeasibilityCheck;
-        const headers = [...universalHeaders, "Shopify Plan", "Shopify Monthly Cost (USD)", "Bank", "Debit Card Tax (%)", "Ad Budget", "Cost Per Conversion", "Total Monthly Fixed Costs", "Breakeven Conversions", "Net Profit", "Break-even Price"];
+        const headers = [...universalHeaders, "Shopify Plan", "Shopify Monthly Cost (USD)", "Bank", "Debit Card Tax (%)", "Ad Budget", "Cost Per Conversion", "Total Monthly Fixed Costs", "Breakeven Conversions", "Net Profit", "Break-even Price", "ROAS Multiplier", "ROAS Percent"];
         const rows = [
             headers.join(','),
             [
@@ -103,7 +103,9 @@ const handleDownloadCsv = (record: LaunchPlan | FeasibilityCheck) => {
                 feasibilityRecord.totalMonthlyFixedCosts,
                 feasibilityRecord.breakevenConversions,
                 feasibilityRecord.netProfit,
-                feasibilityRecord.breakEvenPrice
+                feasibilityRecord.breakEvenPrice,
+                feasibilityRecord.roasMultiplier.toFixed(2),
+                feasibilityRecord.roasPercent.toFixed(1)
             ].join(',')
         ];
         csvContent += rows.join('\n');
@@ -171,6 +173,7 @@ const handleDownloadPdf = (record: LaunchPlan | FeasibilityCheck, toast: any) =>
                 ['Estimated Net Profit', `PKR ${r.netProfit.toLocaleString()}`],
                 ['Breakeven Conversions', r.breakevenConversions.toLocaleString()],
                 ['Break-even Price', `PKR ${r.breakEvenPrice.toLocaleString()}`],
+                ['ROAS', `${r.roasMultiplier.toFixed(2)}x (${r.roasPercent.toFixed(1)}%)`],
                 [{content: 'Inputs', styles: {fontStyle: 'bold', fillColor: isDark ? [40,40,40] : [240,240,240]}}],
                 ['Sourcing Cost', `PKR ${r.sourcingCost.toLocaleString()}`],
                 ['Selling Price', `PKR ${r.sellingPrice.toLocaleString()}`],
@@ -269,6 +272,7 @@ const FeasibilityResult = ({ record }: { record: FeasibilityCheck }) => (
         </Card>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <MetricCard label="Estimated Net Profit" value={record.netProfit} subtext="per month" />
+            <MetricCard label="Return on Ad Spend (ROAS)" value={`${record.roasMultiplier.toFixed(2)}x`} subtext={`(${record.roasPercent.toFixed(1)}%)`} />
             <MetricCard label="Breakeven Conversions" value={record.breakevenConversions} subtext="sales needed to break even per month" />
             <MetricCard label="Break-even Price" value={record.breakEvenPrice} subtext="to cover per-unit costs" />
         </div>

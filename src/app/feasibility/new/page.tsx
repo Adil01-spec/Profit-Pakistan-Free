@@ -105,7 +105,7 @@ export default function FeasibilityPage() {
     }
   }, [paymentType, selectedCourier, form]);
   
-  const formValuesString = JSON.stringify(watchedValues);
+  const formValuesString = JSON.stringify(Object.values(watchedValues));
   useEffect(() => {
     if (form.formState.isDirty) {
       toast({ title: 'Recalculating...' });
@@ -152,7 +152,9 @@ export default function FeasibilityPage() {
     const netProfit = totalRevenue - totalSourcingCost - totalCourierCost - totalMonthlyFixedCosts - totalFbrTax;
     
     const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
-    const roas = adBudget > 0 ? (totalRevenue / adBudget) * 100 : 0;
+    
+    const roasMultiplier = adBudget > 0 ? totalRevenue / adBudget : 0;
+    const roasPercent = roasMultiplier * 100;
 
     let profitStatus: FeasibilityCheck['profitStatus'] = 'Loss';
     let summary = "You're projected to be at a loss. You need more sales or lower costs to be profitable.";
@@ -180,7 +182,9 @@ export default function FeasibilityPage() {
         fbrTax: fbrTax || 0,
         taxMessage,
         profitMargin: profitMargin || 0,
-        roas: roas || 0,
+        roas: roasPercent || 0, // Legacy for now, can be removed later
+        roasMultiplier: roasMultiplier || 0,
+        roasPercent: roasPercent || 0,
     };
   }
 
@@ -351,11 +355,16 @@ export default function FeasibilityPage() {
 
                     <Card>
                         <CardHeader>
-                        <CardTitle>ROAS (Return on Ad Spend)</CardTitle>
-                        <CardDescription>How efficiently your ad spend performs</CardDescription>
+                        <CardTitle>Return on Ad Spend (ROAS)</CardTitle>
+                        <CardDescription>Efficiency of ad performance</CardDescription>
                         </CardHeader>
                         <CardContent>
-                        <p className="text-2xl font-bold">{formatNumberWithDecimals(calculatedValues.roas)}%</p>
+                        <p className="text-2xl font-bold">
+                            {formatNumber(calculatedValues.roasMultiplier, 2)}x
+                        </p>
+                        <p className="text-muted-foreground text-sm">
+                            ({formatNumber(calculatedValues.roasPercent, 1)}%)
+                        </p>
                         </CardContent>
                     </Card>
 
