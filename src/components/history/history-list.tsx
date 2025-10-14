@@ -149,7 +149,7 @@ export function HistoryList({ history, loading }: HistoryListProps) {
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
-                    className={cn(buttonVariants({variant: "destructive"}))}
+                    variant="destructive"
                     onClick={(e) => { e.preventDefault(); handleDelete(record.id)}}
                     disabled={deletingId === record.id}
                   >
