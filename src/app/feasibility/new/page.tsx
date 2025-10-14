@@ -72,6 +72,7 @@ export default function FeasibilityPage() {
   const shopifyPlan = form.watch('shopifyPlan');
   const paymentType = form.watch('paymentType');
   const selectedCourier = form.watch('courier');
+  const watchedValues = form.watch();
 
   useEffect(() => {
     const courier = selectedCourier as keyof typeof courierRates;
@@ -80,11 +81,11 @@ export default function FeasibilityPage() {
         form.setValue('courierRate', rate, { shouldValidate: true });
     }
   }, [paymentType, selectedCourier, form]);
-
-  const watchedValues = form.watch();
   
   useEffect(() => {
-    toast({ title: 'Recalculating...' });
+    if (form.formState.isDirty) {
+      toast({ title: 'Recalculating...' });
+    }
   }, [
     watchedValues.sourcingCost,
     watchedValues.sellingPrice,
@@ -97,6 +98,8 @@ export default function FeasibilityPage() {
     watchedValues.adBudget,
     watchedValues.costPerConversion,
     watchedValues.paymentType,
+    form.formState.isDirty,
+    toast,
   ]);
 
   const handleBankChange = (bankName: string) => {
