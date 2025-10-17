@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { SettingsProvider } from '@/hooks/use-settings';
 import { HistoryProvider } from '@/hooks/use-history';
+import Script from 'next/script';
 
 export const metadata: Metadata = {
   title: 'Profit Pakistan Pro',
@@ -22,6 +23,12 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
+        <Script
+            async
+            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXX"
+            crossOrigin="anonymous"
+            strategy="lazyOnload"
+        />
       </head>
       <body className={cn('font-body antialiased')}>
         <Providers>

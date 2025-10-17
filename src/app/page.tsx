@@ -8,6 +8,7 @@ import { Lightbulb, BarChart3, ChevronRight } from 'lucide-react';
 import { Header } from '@/components/header';
 import { HistoryList } from '@/components/history/history-list';
 import { useHistory } from '@/hooks/use-history';
+import { AdBanner } from '@/components/ad-banner';
 
 export default function DashboardPage() {
   const { history, loading: historyLoading } = useHistory();
@@ -64,6 +65,8 @@ export default function DashboardPage() {
               </Card>
             </Link>
           </section>
+
+          <AdBanner />
 
           <section>
             <div className="flex items-center justify-between mb-4">

@@ -5,6 +5,7 @@ import { Header } from '@/components/header';
 import { HistoryList } from '@/components/history/history-list';
 import { Card, CardContent } from '@/components/ui/card';
 import { SettingsDialog } from '@/components/settings-dialog';
+import { AdBanner } from '@/components/ad-banner';
 
 export default function HistoryPage() {
   const { history, loading } = useHistory();
@@ -25,6 +26,7 @@ export default function HistoryPage() {
               <HistoryList history={history} loading={loading} />
             </CardContent>
           </Card>
+          <AdBanner />
         </div>
       </main>
     </div>

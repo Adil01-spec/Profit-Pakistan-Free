@@ -45,6 +45,7 @@ import {
   TooltipContent,
 } from '@/components/ui/tooltip';
 import { courierRates } from '@/lib/courier-rates';
+import { AdBanner } from '@/components/ad-banner';
 
 // Helper function to safely format numbers
 const formatNumber = (num: any, decimals = 0) => {
@@ -593,95 +594,98 @@ export default function FeasibilityPage() {
                 </div>
 
                 {calculatedValues && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Total Profit</CardTitle>
-                        <CardDescription>
-                          Net profit after all deductions
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p
-                          className={`text-2xl font-bold ${
-                            calculatedValues.netProfit > 0
-                              ? 'text-green-500'
-                              : 'text-red-500'
-                          }`}
-                        >
-                          PKR {formatNumber(calculatedValues.netProfit)}
-                        </p>
-                      </CardContent>
-                    </Card>
+                  <div className="space-y-6 mt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Total Profit</CardTitle>
+                          <CardDescription>
+                            Net profit after all deductions
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <p
+                            className={`text-2xl font-bold ${
+                              calculatedValues.netProfit > 0
+                                ? 'text-green-500'
+                                : 'text-red-500'
+                            }`}
+                          >
+                            PKR {formatNumber(calculatedValues.netProfit)}
+                          </p>
+                        </CardContent>
+                      </Card>
 
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Return on Ad Spend (ROAS)</CardTitle>
-                        <CardDescription>
-                          Efficiency of ad performance
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-2xl font-bold">
-                          {formatNumber(calculatedValues.roasMultiplier, 2)}x
-                        </p>
-                        <p className="text-muted-foreground text-sm">
-                          (
-                          {formatNumber(calculatedValues.roasPercent, 1)}
-                          %)
-                        </p>
-                      </CardContent>
-                    </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Return on Ad Spend (ROAS)</CardTitle>
+                          <CardDescription>
+                            Efficiency of ad performance
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-bold">
+                            {formatNumber(calculatedValues.roasMultiplier, 2)}x
+                          </p>
+                          <p className="text-muted-foreground text-sm">
+                            (
+                            {formatNumber(calculatedValues.roasPercent, 1)}
+                            %)
+                          </p>
+                        </CardContent>
+                      </Card>
 
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Profit Margin</CardTitle>
-                        <CardDescription>
-                          Percentage profit on your selling price
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-2xl font-bold">
-                          {formatNumberWithDecimals(
-                            calculatedValues.profitMargin
-                          )}
-                          %
-                        </p>
-                      </CardContent>
-                    </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Profit Margin</CardTitle>
+                          <CardDescription>
+                            Percentage profit on your selling price
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-bold">
+                            {formatNumberWithDecimals(
+                              calculatedValues.profitMargin
+                            )}
+                            %
+                          </p>
+                        </CardContent>
+                      </Card>
 
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Break-even Point</CardTitle>
-                        <CardDescription>
-                          Minimum selling price to avoid loss
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-2xl font-bold">
-                          PKR {formatNumber(calculatedValues.breakEvenPrice)}
-                        </p>
-                      </CardContent>
-                    </Card>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Break-even Point</CardTitle>
+                          <CardDescription>
+                            Minimum selling price to avoid loss
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-2xl font-bold">
+                            PKR {formatNumber(calculatedValues.breakEvenPrice)}
+                          </p>
+                        </CardContent>
+                      </Card>
 
-                    <Card className="col-span-1 md:col-span-2 text-center">
-                      <CardHeader>
-                        <CardTitle>Feasibility Verdict</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p
-                          className={`text-2xl font-semibold ${
-                            calculatedValues.profitStatus === 'Profitable'
-                              ? 'text-green-500'
-                              : calculatedValues.profitStatus === 'Near Breakeven'
-                              ? 'text-yellow-500'
-                              : 'text-red-500'
-                          }`}
-                        >
-                          {calculatedValues.profitStatus}
-                        </p>
-                      </CardContent>
-                    </Card>
+                      <Card className="col-span-1 md:col-span-2 text-center">
+                        <CardHeader>
+                          <CardTitle>Feasibility Verdict</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p
+                            className={`text-2xl font-semibold ${
+                              calculatedValues.profitStatus === 'Profitable'
+                                ? 'text-green-500'
+                                : calculatedValues.profitStatus === 'Near Breakeven'
+                                ? 'text-yellow-500'
+                                : 'text-red-500'
+                            }`}
+                          >
+                            {calculatedValues.profitStatus}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
+                    <AdBanner />
                   </div>
                 )}
 
