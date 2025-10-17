@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bot, Loader2, SendHoriz, User } from 'lucide-react';
+import { Bot, Loader2, Send, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { runChat } from '@/ai/flows/marketing-chat-flow';
@@ -175,7 +175,7 @@ export function AIChatScreen() {
             disabled={isLoading || limitReached}
           />
           <Button onClick={handleSendMessage} disabled={isLoading || !input.trim() || limitReached}>
-            <SendHoriz size={18} />
+            <Send size={18} />
             <span className="sr-only">Send</span>
           </Button>
         </div>
