@@ -22,7 +22,7 @@ type ResultDisplayProps = {
 const MetricCard = ({ label, value, subtext }: { label: string; value: string | number; subtext?: string }) => (
   <div className="flex flex-col rounded-lg border bg-card p-4 shadow-sm">
     <p className="text-sm text-muted-foreground">{label}</p>
-    <p className="text-2xl font-bold">{typeof value === 'number' ? `PKR ${value.toLocaleString('en-US', {maximumFractionDigits: 0})}` : value}</p>
+    <p className="text-xl md:text-2xl font-bold">{typeof value === 'number' ? `PKR ${value.toLocaleString('en-US', {maximumFractionDigits: 0})}` : value}</p>
     {subtext && <p className="text-xs text-muted-foreground">{subtext}</p>}
   </div>
 );
@@ -217,12 +217,12 @@ const handleDownloadPdf = (record: LaunchPlan | FeasibilityCheck, toast: any) =>
 const LaunchResult = ({ record }: { record: LaunchPlan }) => (
     <>
     <CardHeader>
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
             <div>
-                <CardTitle className="text-3xl font-bold">{record.productName}</CardTitle>
+                <CardTitle className="text-2xl md:text-3xl font-bold">{record.productName}</CardTitle>
                 <CardDescription className="mt-1">{record.category} &middot; Report from {format(new Date(record.date), 'PP')}</CardDescription>
             </div>
-            <Badge variant={getStatusVariant(record.profitStatus)} className="text-sm">{record.profitStatus}</Badge>
+            <Badge variant={getStatusVariant(record.profitStatus)} className="text-sm mt-2 sm:mt-0">{record.profitStatus}</Badge>
         </div>
     </CardHeader>
     <CardContent className="space-y-6">
@@ -230,7 +230,7 @@ const LaunchResult = ({ record }: { record: LaunchPlan }) => (
             <CardHeader><CardTitle className="text-lg">Analysis Summary</CardTitle></CardHeader>
             <CardContent><p className="text-muted-foreground">{record.summary}</p></CardContent>
         </Card>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
             <MetricCard label="Profit Margin" value={`${record.profitMargin.toFixed(1)}%`} />
             <MetricCard label="Profit per Unit" value={record.profitPerUnit} />
             <MetricCard label="Breakeven ROAS" value={`1:${record.breakevenROAS.toFixed(2)}`} subtext="Sell Price / Profit per Unit"/>
@@ -239,7 +239,7 @@ const LaunchResult = ({ record }: { record: LaunchPlan }) => (
         <Card>
             <CardHeader><CardTitle className="text-lg">Inputs</CardTitle></CardHeader>
             <CardContent>
-                <ul className="divide-y">
+                <ul className="divide-y text-sm">
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Sourcing Cost</span><span>PKR {record.sourcingCost.toLocaleString()}</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Selling Price</span><span>PKR {record.sellingPrice.toLocaleString()}</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Monthly Marketing Budget</span><span>PKR {record.marketingBudget.toLocaleString()}</span></li>
@@ -257,12 +257,12 @@ const LaunchResult = ({ record }: { record: LaunchPlan }) => (
 const FeasibilityResult = ({ record }: { record: FeasibilityCheck }) => (
     <>
     <CardHeader>
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
             <div>
-                <CardTitle className="text-3xl font-bold">{record.productName}</CardTitle>
+                <CardTitle className="text-2xl md:text-3xl font-bold">{record.productName}</CardTitle>
                 <CardDescription className="mt-1">{record.category} &middot; Report from {format(new Date(record.date), 'PP')}</CardDescription>
             </div>
-            <Badge variant={getStatusVariant(record.profitStatus)} className="text-sm">{record.profitStatus}</Badge>
+            <Badge variant={getStatusVariant(record.profitStatus)} className="text-sm mt-2 sm:mt-0">{record.profitStatus}</Badge>
         </div>
     </CardHeader>
     <CardContent className="space-y-6">
@@ -279,7 +279,7 @@ const FeasibilityResult = ({ record }: { record: FeasibilityCheck }) => (
         <Card>
             <CardHeader><CardTitle className="text-lg">Inputs</CardTitle></CardHeader>
             <CardContent>
-                <ul className="divide-y">
+                <ul className="divide-y text-sm">
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Sourcing Cost</span><span>PKR {record.sourcingCost.toLocaleString()}</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Selling Price</span><span>PKR {record.sellingPrice.toLocaleString()}</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Shopify Plan</span><span className="capitalize">{record.shopifyPlan} (${record.shopifyMonthlyCost})</span></li>
@@ -301,14 +301,14 @@ const FeasibilityResult = ({ record }: { record: FeasibilityCheck }) => (
 export const ResultDisplay = ({ record }: ResultDisplayProps) => {
     const { toast } = useToast();
     return (
-        <Card className="w-full">
+        <Card className="w-full overflow-hidden">
             {record.type === 'Launch' ? <LaunchResult record={record as LaunchPlan} /> : <FeasibilityResult record={record as FeasibilityCheck} />}
-             <CardFooter className="flex-row-reverse border-t pt-6 gap-2">
-                <Button onClick={() => handleDownloadPdf(record, toast)}>
+             <CardFooter className="flex-col sm:flex-row-reverse border-t pt-6 gap-2">
+                <Button onClick={() => handleDownloadPdf(record, toast)} className="w-full sm:w-auto">
                     <Download className="mr-2 h-4 w-4" />
                     Download PDF
                 </Button>
-                <Button variant="outline" onClick={() => handleDownloadCsv(record)}>
+                <Button variant="outline" onClick={() => handleDownloadCsv(record)} className="w-full sm:w-auto">
                     <Download className="mr-2 h-4 w-4" />
                     Download CSV
                 </Button>
@@ -316,5 +316,3 @@ export const ResultDisplay = ({ record }: ResultDisplayProps) => {
         </Card>
     );
 };
-
-    

@@ -300,10 +300,10 @@ export default function FeasibilityPage() {
   return (
     <>
       <Header />
-      <main className="container mx-auto max-w-2xl p-4 py-8">
+      <main className="container mx-auto max-w-4xl p-4 py-8">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-2xl font-bold md:text-3xl">
               Ad Feasibility Calculator
             </CardTitle>
             <CardDescription>
@@ -380,7 +380,7 @@ export default function FeasibilityPage() {
                         <RadioGroup
                           onValueChange={field.onChange}
                           defaultValue={field.value}
-                          className="flex space-x-4"
+                          className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4"
                         >
                           <FormItem className="flex items-center space-x-2">
                             <FormControl>
@@ -703,5 +703,3 @@ export default function FeasibilityPage() {
     </>
   );
 }
-
-    

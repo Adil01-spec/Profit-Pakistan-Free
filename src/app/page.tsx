@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -20,7 +21,7 @@ export default function DashboardPage() {
             <h1 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               Welcome to Profit Pakistan Pro!
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-lg text-muted-foreground">
               Your financial co-pilot for e-commerce in Pakistan. What would you like to analyze today?
             </p>
           </section>

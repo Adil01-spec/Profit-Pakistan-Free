@@ -252,10 +252,10 @@ export default function PlannerPage() {
   return (
     <>
       <Header />
-      <main className="container mx-auto max-w-2xl p-4 py-8">
+      <main className="container mx-auto max-w-4xl p-4 py-8">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl font-bold">
+            <CardTitle className="text-2xl font-bold md:text-3xl">
               Product Launch Planner
             </CardTitle>
              <CardDescription>
@@ -459,5 +459,3 @@ export default function PlannerPage() {
     </>
   );
 }
-
-    
