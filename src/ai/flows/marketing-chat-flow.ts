@@ -37,7 +37,6 @@ const marketingChatFlow = ai.defineFlow(
     async (messages) => {
         const result = await ai.generate({
             prompt: prompt,
-            model: 'gemini-1.5-flash',
             config: {
                 temperature: 0.7
             },
