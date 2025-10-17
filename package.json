@@ -6,11 +6,13 @@
     "dev": "next dev --turbopack -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "NODE_ENV=production next build",
-    "export": "next build",
+    "build": "next build",
+    "export": "next export",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "predeploy": "npm run build && npm run export",
+    "deploy": "firebase deploy"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",
@@ -46,7 +48,7 @@
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
     "lucide-react": "^0.475.0",
-    "next": "15.3.3",
+    "next": "14.2.5",
     "next-themes": "^0.3.0",
     "patch-package": "^8.0.0",
     "react": "^18.3.1",
