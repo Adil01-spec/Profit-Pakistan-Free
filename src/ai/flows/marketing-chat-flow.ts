@@ -6,8 +6,9 @@
  * - runChat: A function that handles the AI chat interaction.
  */
 
-import { ai } from '@/ai/genkit';
+import { generateWithFallback } from '@/ai/genkit';
 import { z } from 'zod';
+import {ai} from '@/ai/genkit';
 
 const MessageSchema = z.object({
     role: z.enum(['user', 'assistant']),
@@ -27,7 +28,7 @@ const marketingChatFlow = ai.defineFlow(
         outputSchema: z.string(),
     },
     async (messages) => {
-        const result = await ai.generate({
+        const result = await generateWithFallback({
             prompt: `You are a helpful and friendly marketing assistant for Pakistani e-commerce store owners. Your goal is to provide concise, actionable advice. Keep your responses short and to the point.`,
             history: messages,
             config: {
