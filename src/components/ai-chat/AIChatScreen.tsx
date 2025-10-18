@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bot, Loader2, Send, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { runChat } from '@/ai/flows/marketing-chat-flow';
+import { getAIResponse } from '@/app/actions/aiApi';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,10 +62,11 @@ export function AIChatScreen() {
         return;
     }
 
+    const userMessageContent = input.trim();
     const newUserMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim(),
+      content: userMessageContent,
     };
 
     setMessages((prev) => [...prev, newUserMessage]);
@@ -73,10 +74,7 @@ export function AIChatScreen() {
     setIsLoading(true);
 
     try {
-      const response = await runChat([
-        ...messages.map((m) => ({ role: m.role, content: m.content })),
-        { role: newUserMessage.role, content: newUserMessage.content }
-      ]);
+      const response = await getAIResponse(userMessageContent);
       
       const newAiMessage: Message = {
         id: (Date.now() + 1).toString(),
