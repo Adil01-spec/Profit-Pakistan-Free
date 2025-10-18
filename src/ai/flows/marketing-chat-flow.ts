@@ -28,7 +28,6 @@ const marketingChatFlow = ai.defineFlow(
     },
     async (messages) => {
         const result = await ai.generate({
-            model: 'googleai/gemini-1.5-flash',
             prompt: `You are a helpful and friendly marketing assistant for Pakistani e-commerce store owners. Your goal is to provide concise, actionable advice. Keep your responses short and to the point.`,
             history: messages,
             config: {
