@@ -5,7 +5,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bot, Loader2, Send, User, BrainCircuit } from 'lucide-react';
+import { Bot, Loader2, Send, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -133,14 +133,9 @@ export function MarketingAssistantCard() {
   return (
     <>
       <Card className="flex h-full flex-col">
-        <CardHeader className="flex flex-row items-center gap-4">
-            <div className="rounded-full bg-primary/20 p-3">
-                <BrainCircuit className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-                <CardTitle className="text-xl">Marketing AI Assistant</CardTitle>
-                <CardDescription>Get instant marketing advice</CardDescription>
-            </div>
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">AI Marketing Assistant</CardTitle>
+          <CardDescription>Get instant marketing advice for your e-commerce business</CardDescription>
         </CardHeader>
         <CardContent className="flex-grow flex flex-col p-0">
           <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
