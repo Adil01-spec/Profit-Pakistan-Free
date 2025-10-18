@@ -19,6 +19,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { runChat } from '@/ai/flows/marketing-chat-flow';
+
 
 type Message = {
   role: 'user' | 'assistant';
@@ -26,7 +28,6 @@ type Message = {
 };
 
 const MESSAGE_LIMIT = 5;
-const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.NEXT_PUBLIC_GEMINI_API_KEY}`;
 
 export function MarketingAssistantCard() {
   const { toast } = useToast();
@@ -76,41 +77,19 @@ export function MarketingAssistantCard() {
     }
 
     const userMessage: Message = { role: 'user', content: input.trim() };
-    setMessages((prev) => [...prev, userMessage]);
+    const newMessages: Message[] = [...messages, userMessage];
+    setMessages(newMessages);
     setInput('');
     setIsLoading(true);
 
     try {
-      const prompt = `
-        You are a friendly AI marketing assistant for a Pakistani entrepreneur.
-        Give practical, creative, and concise responses related to:
-        - product marketing
-        - Meta or TikTok ads
-        - e-commerce strategy
-        Keep tone: helpful, optimistic, and to-the-point.
-        User: ${userMessage.content}
-      `;
+      const aiContent = await runChat(newMessages);
 
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const aiContent = data.candidates[0]?.content.parts[0]?.text || "Sorry, I couldn't generate a response.";
       const aiMessage: Message = { role: 'assistant', content: aiContent };
-
       setMessages((prev) => [...prev, aiMessage]);
       incrementSessionCount();
     } catch (error) {
-      console.error('Gemini API Error:', error);
+      console.error('AI API Error:', error);
       toast({
         variant: 'destructive',
         title: '⚠️ Something went wrong.',
