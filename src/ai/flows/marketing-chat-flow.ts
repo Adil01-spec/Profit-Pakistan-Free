@@ -20,20 +20,6 @@ export async function runChat(messages: Message[]): Promise<string> {
     return marketingChatFlow(messages);
 }
 
-const prompt = ai.definePrompt({
-    name: 'marketingChatPrompt',
-    input: { schema: z.array(MessageSchema) },
-    output: { schema: z.string() },
-    prompt: `You are a helpful and friendly marketing assistant for Pakistani e-commerce store owners.
-Your goal is to provide concise, actionable advice. Keep your responses short and to the point.
-Here is the conversation history:
-{{#each input}}
-{{role}}: {{content}}
-{{/each}}
-`,
-});
-
-
 const marketingChatFlow = ai.defineFlow(
     {
         name: 'marketingChatFlow',
@@ -42,11 +28,11 @@ const marketingChatFlow = ai.defineFlow(
     },
     async (messages) => {
         const result = await ai.generate({
-            prompt: prompt.prompt,
+            prompt: `You are a helpful and friendly marketing assistant for Pakistani e-commerce store owners. Your goal is to provide concise, actionable advice. Keep your responses short and to the point.`,
+            history: messages,
             config: {
                 temperature: 0.7
             },
-            context: messages,
         });
         
         return result.text;
