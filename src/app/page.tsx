@@ -4,11 +4,12 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Lightbulb, BarChart3, ChevronRight, Bot } from 'lucide-react';
+import { Lightbulb, BarChart3, ChevronRight } from 'lucide-react';
 import { Header } from '@/components/header';
 import { HistoryList } from '@/components/history/history-list';
 import { useHistory } from '@/hooks/use-history';
 import { AdBanner } from '@/components/ad-banner';
+import { MarketingAssistantCard } from '@/components/ai-chat/MarketingAssistantCard';
 
 export default function DashboardPage() {
   const { history, loading: historyLoading } = useHistory();
@@ -27,62 +28,50 @@ export default function DashboardPage() {
             </p>
           </section>
 
-          <section className="mb-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Link href="/planner/new" passHref>
-              <Card className="flex h-full flex-col overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
-                <CardHeader className="flex flex-row items-center gap-4">
-                  <div className="rounded-full bg-accent p-3">
-                    <Lightbulb className="h-6 w-6 text-accent-foreground" />
-                  </div>
-                  <CardTitle className="text-xl">Plan a New Product Launch</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <p className="text-muted-foreground">
-                    Estimate profit margins and breakeven points for your next big product idea.
-                  </p>
-                </CardContent>
-                <div className="bg-muted/50 px-6 py-3 text-sm font-medium text-primary flex items-center">
-                  Start Planning <ChevronRight className="ml-1 h-4 w-4" />
-                </div>
-              </Card>
-            </Link>
-            <Link href="/feasibility/new" passHref>
-              <Card className="flex h-full flex-col overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
-                <CardHeader className="flex flex-row items-center gap-4">
-                  <div className="rounded-full bg-accent p-3">
-                    <BarChart3 className="h-6 w-6 text-accent-foreground" />
-                  </div>
-                  <CardTitle className="text-xl">Check Ad Feasibility</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <p className="text-muted-foreground">
-                    Analyze the profitability of your current ad campaigns and find your breakeven ROAS.
-                  </p>
-                </CardContent>
-                <div className="bg-muted/50 px-6 py-3 text-sm font-medium text-primary flex items-center">
-                  Check Feasibility <ChevronRight className="ml-1 h-4 w-4" />
-                </div>
-              </Card>
-            </Link>
-             <Link href="/ai-chat" passHref>
-              <Card className="flex h-full flex-col overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1 md:col-span-2 lg:col-span-1">
-                <CardHeader className="flex flex-row items-center gap-4">
-                  <div className="rounded-full bg-primary/20 p-3">
-                    <Bot className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle className="text-xl">AI Marketing Assistant</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <p className="text-muted-foreground">
-                   Your smart marketing buddy! Ask anything about product promotion, ads, or campaign strategy.
-                  </p>
-                </CardContent>
-                <div className="bg-muted/50 px-6 py-3 text-sm font-medium text-primary flex items-center">
-                  Chat with AI <ChevronRight className="ml-1 h-4 w-4" />
-                </div>
-              </Card>
-            </Link>
-          </section>
+          <div className="grid gap-6 lg:grid-cols-3 mb-12">
+            <div className="lg:col-span-2 grid gap-6 md:grid-cols-2">
+                <Link href="/planner/new" passHref>
+                  <Card className="flex h-full flex-col overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
+                    <CardHeader className="flex flex-row items-center gap-4">
+                      <div className="rounded-full bg-accent p-3">
+                        <Lightbulb className="h-6 w-6 text-accent-foreground" />
+                      </div>
+                      <CardTitle className="text-xl">Plan a New Product Launch</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-grow">
+                      <p className="text-muted-foreground">
+                        Estimate profit margins and breakeven points for your next big product idea.
+                      </p>
+                    </CardContent>
+                    <div className="bg-muted/50 px-6 py-3 text-sm font-medium text-primary flex items-center">
+                      Start Planning <ChevronRight className="ml-1 h-4 w-4" />
+                    </div>
+                  </Card>
+                </Link>
+                <Link href="/feasibility/new" passHref>
+                  <Card className="flex h-full flex-col overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1">
+                    <CardHeader className="flex flex-row items-center gap-4">
+                      <div className="rounded-full bg-accent p-3">
+                        <BarChart3 className="h-6 w-6 text-accent-foreground" />
+                      </div>
+                      <CardTitle className="text-xl">Check Ad Feasibility</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-grow">
+                      <p className="text-muted-foreground">
+                        Analyze the profitability of your current ad campaigns and find your breakeven ROAS.
+                      </p>
+                    </CardContent>
+                    <div className="bg-muted/50 px-6 py-3 text-sm font-medium text-primary flex items-center">
+                      Check Feasibility <ChevronRight className="ml-1 h-4 w-4" />
+                    </div>
+                  </Card>
+                </Link>
+            </div>
+            <div className="lg:col-span-1">
+              <MarketingAssistantCard />
+            </div>
+          </div>
+
 
           <AdBanner />
 
