@@ -19,8 +19,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { runChat } from '@/ai/flows/marketing-chat-flow';
-
 
 type Message = {
   role: 'user' | 'assistant';
@@ -83,13 +81,24 @@ export function MarketingAssistantCard() {
     setIsLoading(true);
 
     try {
-      const aiContent = await runChat(newMessages);
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages: [userMessage] }), // Send only the new message for context
+      });
 
-      const aiMessage: Message = { role: 'assistant', content: aiContent };
+      if (!response.ok) {
+        throw new Error('API error');
+      }
+      
+      const data = await response.json();
+      const aiMessage: Message = { role: 'assistant', content: data.reply };
       setMessages((prev) => [...prev, aiMessage]);
       incrementSessionCount();
     } catch (error) {
-      console.error('AI API Error:', error);
+      console.error('API Error:', error);
       toast({
         variant: 'destructive',
         title: '⚠️ Something went wrong.',
