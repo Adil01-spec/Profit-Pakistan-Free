@@ -85,31 +85,30 @@
           "type": "string",
           "description": "Unique identifier of the user or device."
         },
-        "lastExportTime": {
+        "lastReset": {
           "type": "string",
-          "description": "Timestamp of the last report export.",
+          "description": "Timestamp of the last usage counter reset.",
           "format": "date-time"
         },
-        "exportsUsedToday": {
+        "exportsUsed": {
           "type": "number",
-          "description": "Number of report exports used today."
+          "description": "Number of report exports used in the current period."
         },
-        "aiPromptsUsedToday": {
+        "aiPromptsUsed": {
           "type": "number",
-          "description": "Number of AI prompts used today."
+          "description": "Number of AI prompts used in the current period."
         }
       },
       "required": [
         "userId",
-        "lastExportTime",
-        "exportsUsedToday",
-        "aiPromptsUsedToday"
+        "lastReset",
+        "exportsUsed",
+        "aiPromptsUsed"
       ]
     }
   },
   "auth": {
     "providers": [
-      "password",
       "anonymous"
     ]
   },
@@ -167,7 +166,6 @@
           ]
         }
       }
-    ],
-    "reasoning": "This design prioritizes authorization independence and QAPs. User profiles and analysis records are stored under user-specific paths for private data. The `free_usage` collection stores usage data, using the `userId` as the document ID. This is crucial for quick lookups and managing free usage limits for both authenticated and anonymous users. The `userId` also helps with querying and enforcing limits. By storing the `free_usage` documents separately and not as a subcollection of user profiles, we maintain authorization independence and avoid the need for `get()` calls in security rules. This enables atomic operations and simplifies security rule debugging. The path-based ownership of `AnalysisRecord` ensures that list operations (QAPs) can be secured by checking `request.auth.uid == userId`. The `FreeUsage` data is segregated into its own collection to enforce access rules consistently, preventing unauthorized modifications or bypass attempts. Timestamps (`lastExportTime`) are essential for resetting counters after 24 hours and enforcing usage limits. Explicitly storing usage counts (`exportsUsedToday`, `aiPromptsUsedToday`) makes the state clear and predictable."
+    ]
   }
 }

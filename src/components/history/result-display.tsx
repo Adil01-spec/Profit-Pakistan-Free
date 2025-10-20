@@ -23,6 +23,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useUsage } from "@/hooks/use-usage";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 
 // Extend the jsPDF interface to include autoTable
@@ -315,20 +317,19 @@ const FeasibilityResult = ({ record }: { record: FeasibilityCheck }) => (
 
 export const ResultDisplay = ({ record }: ResultDisplayProps) => {
     const { toast } = useToast();
+    const { usageState, canUseFeature, recordFeatureUsage, grantUsage } = useUsage();
     const [showAdPrompt, setShowAdPrompt] = useState(false);
     const [isAdLoading, setIsAdLoading] = useState(false);
     const [downloadType, setDownloadType] = useState<'pdf' | 'csv' | null>(null);
 
-    const checkAndTriggerDownload = (type: 'pdf' | 'csv') => {
-        const downloadCount = parseInt(sessionStorage.getItem('downloadCount') || '0');
+    const canDownload = canUseFeature('export');
+    const downloadsLeft = usageState.export.limit - usageState.export.used;
 
-        if (downloadCount < 1) {
-            sessionStorage.setItem('downloadCount', String(downloadCount + 1));
-            if (type === 'pdf') {
-                handleDownloadPdf(record, toast);
-            } else {
-                handleDownloadCsv(record);
-            }
+    const checkAndTriggerDownload = (type: 'pdf' | 'csv') => {
+        if (canDownload) {
+            recordFeatureUsage('export');
+            if (type === 'pdf') handleDownloadPdf(record, toast);
+            else handleDownloadCsv(record);
         } else {
             setDownloadType(type);
             setShowAdPrompt(true);
@@ -337,25 +338,20 @@ export const ResultDisplay = ({ record }: ResultDisplayProps) => {
 
     const handleWatchAd = () => {
         setIsAdLoading(true);
-        // Simulate watching an ad
         setTimeout(() => {
-            sessionStorage.setItem('downloadCount', '0'); // Reset count
+            grantUsage('export', 1);
             setIsAdLoading(false);
             setShowAdPrompt(false);
             toast({
                 title: '✅ Export unlocked',
                 description: 'Enjoy your download!',
             });
-            // Trigger the intended download
             if (downloadType) {
-                if (downloadType === 'pdf') {
-                    handleDownloadPdf(record, toast);
-                } else {
-                    handleDownloadCsv(record);
-                }
-                setDownloadType(null); // Reset after download
+                if (downloadType === 'pdf') handleDownloadPdf(record, toast);
+                else handleDownloadCsv(record);
+                setDownloadType(null);
             }
-        }, 1500); // Simulate ad delay
+        }, 1500);
     };
 
     const onAdPromptOpenChange = (open: boolean) => {
@@ -375,15 +371,38 @@ export const ResultDisplay = ({ record }: ResultDisplayProps) => {
         <>
             <Card className="w-full overflow-hidden">
                 {record.type === 'Launch' ? <LaunchResult record={record as LaunchPlan} /> : <FeasibilityResult record={record as FeasibilityCheck} />}
-                <CardFooter className="flex-col sm:flex-row-reverse border-t pt-6 gap-2">
-                    <Button onClick={() => checkAndTriggerDownload('pdf')} className="w-full sm:w-auto">
-                        <Download className="mr-2 h-4 w-4" />
-                        Download PDF
-                    </Button>
-                    <Button variant="outline" onClick={() => checkAndTriggerDownload('csv')} className="w-full sm:w-auto">
-                        <Download className="mr-2 h-4 w-4" />
-                        Download CSV
-                    </Button>
+                <CardFooter className="flex-col sm:flex-col items-start border-t pt-6 gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full">
+                         <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="w-full sm:w-auto">
+                                        <Button onClick={() => checkAndTriggerDownload('pdf')} className="w-full" disabled={!canDownload && !isAdLoading}>
+                                            <Download className="mr-2 h-4 w-4" />
+                                            Download PDF
+                                        </Button>
+                                    </div>
+                                </TooltipTrigger>
+                                {!canDownload && <TooltipContent><p>Watch ad to unlock.</p></TooltipContent>}
+                            </Tooltip>
+                        </TooltipProvider>
+                         <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="w-full sm:w-auto">
+                                        <Button variant="outline" onClick={() => checkAndTriggerDownload('csv')} className="w-full" disabled={!canDownload && !isAdLoading}>
+                                            <Download className="mr-2 h-4 w-4" />
+                                            Download CSV
+                                        </Button>
+                                    </div>
+                                </TooltipTrigger>
+                                {!canDownload && <TooltipContent><p>Watch ad to unlock.</p></TooltipContent>}
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                     <p className="text-xs text-muted-foreground mt-2 text-left w-full">
+                        Free users get {usageState.export.limit} download daily. {downloadsLeft > 0 ? `${downloadsLeft} left.` : "Watch ads to unlock more."}
+                    </p>
                 </CardFooter>
             </Card>
 
@@ -392,7 +411,7 @@ export const ResultDisplay = ({ record }: ResultDisplayProps) => {
                 <AlertDialogHeader>
                     <AlertDialogTitle>Unlock Another Download</AlertDialogTitle>
                     <AlertDialogDescription>
-                    You’ve used your free report export for this session. Watch a short ad to unlock another download.
+                    You’ve used your free report export for today. Watch a short ad to unlock another download.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

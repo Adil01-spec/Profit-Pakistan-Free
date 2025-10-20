@@ -19,13 +19,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useUsage } from '@/hooks/use-usage';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 
 type Message = {
   role: 'user' | 'assistant';
   content: string;
 };
-
-const MESSAGE_LIMIT = 5;
 
 export function MarketingAssistantCard() {
   const { toast } = useToast();
@@ -37,56 +37,37 @@ export function MarketingAssistantCard() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionCount, setSessionCount] = useState(0);
-  const [limitReached, setLimitReached] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    try {
-      const storedCount = Number(localStorage.getItem('aiMessageCount') || '0');
-      setSessionCount(storedCount);
-      if (storedCount >= MESSAGE_LIMIT) {
-        setLimitReached(true);
-      }
-    } catch (error) {
-      console.error("Could not access localStorage:", error);
-    }
-  }, []);
-
-  const incrementSessionCount = useCallback(() => {
-    try {
-        const newCount = sessionCount + 1;
-        setSessionCount(newCount);
-        localStorage.setItem('aiMessageCount', String(newCount));
-        if (newCount >= MESSAGE_LIMIT) {
-            setLimitReached(true);
-        }
-    } catch (error) {
-      console.error("Could not write to localStorage:", error);
-    }
-  }, [sessionCount]);
+  
+  const { usageState, canUseFeature, recordFeatureUsage, grantUsage } = useUsage();
+  const [showAdPrompt, setShowAdPrompt] = useState(false);
+  const [isAdLoading, setIsAdLoading] = useState(false);
+  
+  const canSendPrompt = canUseFeature('ai');
+  const promptsLeft = usageState.ai.limit - usageState.ai.used;
 
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
-    if (sessionCount >= MESSAGE_LIMIT) {
-      setLimitReached(true);
-      return;
+    if (!canSendPrompt) {
+        setShowAdPrompt(true);
+        return;
     }
 
     const userMessage: Message = { role: 'user', content: input.trim() };
-    const newMessages: Message[] = [...messages, userMessage];
-    setMessages(newMessages);
+    const newMessagesForApi = [...messages, userMessage];
+    setMessages(newMessagesForApi);
     setInput('');
     setIsLoading(true);
 
     try {
+      recordFeatureUsage('ai');
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ messages: [userMessage] }), // Send only the new message for context
+        body: JSON.stringify({ messages: newMessagesForApi }),
       });
 
       if (!response.ok) {
@@ -96,7 +77,6 @@ export function MarketingAssistantCard() {
       const data = await response.json();
       const aiMessage: Message = { role: 'assistant', content: data.reply };
       setMessages((prev) => [...prev, aiMessage]);
-      incrementSessionCount();
     } catch (error) {
       console.error('API Error:', error);
       toast({
@@ -104,8 +84,7 @@ export function MarketingAssistantCard() {
         title: '⚠️ Something went wrong.',
         description: 'Please try again later.',
       });
-      // Rollback the user message if AI fails
-      setMessages(prev => prev.slice(0, -1));
+      setMessages(prev => prev.slice(0, -1)); // Rollback the user message
     } finally {
       setIsLoading(false);
     }
@@ -118,25 +97,29 @@ export function MarketingAssistantCard() {
   }, [messages]);
   
   const handleWatchAd = () => {
-    // In a real app, this would trigger a rewarded ad.
-    // For now, we'll just reset the counter.
-    try {
-        localStorage.setItem('aiMessageCount', '0');
-        setSessionCount(0);
-        setLimitReached(false);
+    setIsAdLoading(true);
+    setTimeout(() => {
+        grantUsage('ai', 1);
+        setIsAdLoading(false);
+        setShowAdPrompt(false);
         toast({
-            title: "Thank You!",
-            description: "You can now send more messages.",
+            title: "✅ Access unlocked!",
+            description: "You've earned 1 more AI prompt.",
         });
-    } catch (error) {
-        console.error("Could not write to localStorage:", error);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Could not reset your session. Please check your browser settings.",
-        });
-    }
+    }, 1500);
   };
+
+  const onAdPromptOpenChange = (open: boolean) => {
+    if (!open) {
+        setShowAdPrompt(false);
+        if (!isAdLoading) {
+             toast({
+                variant: 'destructive',
+                title: '⚠️ Watch an ad to send more messages.',
+            });
+        }
+    }
+  }
 
 
   return (
@@ -193,37 +176,53 @@ export function MarketingAssistantCard() {
             </div>
           </ScrollArea>
           <div className="border-t p-4 bg-background/95">
-            <div className="flex items-center gap-2">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Ask about marketing, ads..."
-                className="flex-1"
-                disabled={isLoading || limitReached}
-              />
-              <Button onClick={handleSendMessage} disabled={isLoading || !input.trim() || limitReached}>
-                <Send size={18} />
-                <span className="sr-only">Send</span>
-              </Button>
+             <div className="relative">
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Input
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                                placeholder={canSendPrompt ? "Ask about marketing, ads..." : "Daily AI limit reached"}
+                                className="flex-1 pr-10"
+                                disabled={isLoading || !canSendPrompt}
+                            />
+                        </TooltipTrigger>
+                        {!canSendPrompt && (
+                             <TooltipContent>
+                                <p>Watch ad to unlock.</p>
+                            </TooltipContent>
+                        )}
+                    </Tooltip>
+                </TooltipProvider>
+
+                <Button onClick={handleSendMessage} disabled={isLoading || !input.trim()} className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" size="icon">
+                    <Send size={18} />
+                    <span className="sr-only">Send</span>
+                </Button>
             </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Free users get {usageState.ai.limit} AI prompts daily. {promptsLeft > 0 ? `${promptsLeft} left.` : "Watch ads to unlock more."}
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      <AlertDialog open={limitReached}>
+      <AlertDialog open={showAdPrompt} onOpenChange={onAdPromptOpenChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Free AI Limit Reached</AlertDialogTitle>
             <AlertDialogDescription>
-              You’ve reached your free AI limit of {MESSAGE_LIMIT} messages for this session. Watch an ad to continue or upgrade to Profit Pro Pakistan for unlimited AI access.
+              You’ve used your free AI prompts for today. Watch a short ad to unlock 1 more prompt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-             {/* Optional: Add upgrade logic later */}
-             {/* <Button variant="secondary" onClick={() => window.open('https://example.com/upgrade', '_blank')}>Upgrade</Button> */}
-            <AlertDialogCancel onClick={() => setLimitReached(false)}>Maybe Later</AlertDialogCancel>
-            <AlertDialogAction onClick={handleWatchAd}>Watch Ad</AlertDialogAction>
+            <AlertDialogCancel>Maybe Later</AlertDialogCancel>
+            <AlertDialogAction onClick={handleWatchAd} disabled={isAdLoading}>
+                {isAdLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Watch Ad
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

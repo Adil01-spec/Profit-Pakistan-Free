@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils';
 import { SettingsProvider } from '@/hooks/use-settings';
 import { HistoryProvider } from '@/hooks/use-history';
 import Script from 'next/script';
+import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { UsageProvider } from '@/hooks/use-usage';
 
 export const metadata: Metadata = {
   title: 'Profit Pakistan Pro',
@@ -32,12 +34,16 @@ export default function RootLayout({
       </head>
       <body className={cn('font-body antialiased')}>
         <Providers>
+          <FirebaseClientProvider>
             <SettingsProvider>
-                <HistoryProvider>
+              <HistoryProvider>
+                <UsageProvider>
                     {children}
                     <Toaster />
-                </HistoryProvider>
+                </UsageProvider>
+              </HistoryProvider>
             </SettingsProvider>
+          </FirebaseClientProvider>
         </Providers>
       </body>
     </html>
