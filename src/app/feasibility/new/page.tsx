@@ -133,6 +133,7 @@ export default function FeasibilityPage() {
 
   useEffect(() => {
     if (isPersistent) {
+        if (!settings || !settings.shopifyPlans || !settings.banks) return;
         reset({
             productName: '',
             category: '',
