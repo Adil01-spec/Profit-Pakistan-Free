@@ -10,6 +10,7 @@ import Script from 'next/script';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { UsageProvider } from '@/hooks/use-usage';
 import { Header } from '@/components/header';
+import { Footer } from '@/components/footer';
 
 export const metadata: Metadata = {
   title: 'Profit Pakistan Pro',
@@ -34,15 +35,16 @@ export default function RootLayout({
             strategy="lazyOnload"
         />
       </head>
-      <body className={cn('font-body antialiased')}>
+      <body className={cn('font-body antialiased flex flex-col min-h-screen')}>
         <Providers>
           <FirebaseClientProvider>
             <SettingsProvider>
               <HistoryProvider>
                 <UsageProvider>
                     <Header />
-                    <main>{children}</main>
+                    <main className="flex-grow">{children}</main>
                     <Toaster />
+                    <Footer />
                 </UsageProvider>
               </HistoryProvider>
             </SettingsProvider>
