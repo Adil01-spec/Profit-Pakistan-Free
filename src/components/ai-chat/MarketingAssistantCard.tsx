@@ -32,7 +32,7 @@ export function MarketingAssistantCard() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: '👋 Hi! I’m your Profit Pakistan Marketing Assistant. Ask me how to market your products effectively!',
+      content: 'Hi, I’m ProfitGen — your smart marketing assistant. I’ll help you with ads, Shopify strategy, and profit optimization.',
     },
   ]);
   const [input, setInput] = useState('');
@@ -126,8 +126,8 @@ export function MarketingAssistantCard() {
     <>
       <Card className="flex h-full flex-col">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">AI Marketing Assistant</CardTitle>
-          <CardDescription>Get instant marketing advice for your e-commerce business</CardDescription>
+          <CardTitle className="text-2xl font-bold">ProfitGen</CardTitle>
+          <CardDescription>Your Smart Marketing Assistant.</CardDescription>
         </CardHeader>
         <CardContent className="flex-grow flex flex-col p-0">
           <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>

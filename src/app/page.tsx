@@ -68,11 +68,11 @@ export default function DashboardPage() {
                       <div className="rounded-full bg-primary/20 p-3">
                         <BrainCircuit className="h-6 w-6 text-primary" />
                       </div>
-                      <CardTitle className="text-xl">AI Marketing Assistant</CardTitle>
+                      <CardTitle className="text-xl">ProfitGen</CardTitle>
                     </CardHeader>
                     <CardContent className="flex-grow">
                       <p className="text-muted-foreground">
-                        Get instant advice on product promotion, ads, or campaign strategy.
+                        Your Smart Marketing Assistant. Get instant advice on product promotion, ads, or campaign strategy.
                       </p>
                     </CardContent>
                     <div className="bg-muted/50 px-6 py-3 text-sm font-medium text-primary flex items-center">
