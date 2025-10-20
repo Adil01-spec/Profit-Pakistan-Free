@@ -12,11 +12,11 @@ export default function UpgradePage() {
     {
       name: "Free Plan",
       price: "₨ 0 /month",
-      highlight: "Perfect for beginners exploring Profit Pakistan",
+      highlight: "Try out Profit Pakistan — perfect for testing ideas",
       features: [
         "Access to core calculators",
-        "3 AI prompts per session",
-        "Rewarded ads for extra chats",
+        "2 AI prompts per session",
+        "Rewarded ads for extra prompts",
         "Basic insights & reporting"
       ],
       buttonText: "Current Plan",
@@ -27,13 +27,13 @@ export default function UpgradePage() {
     },
     {
       name: "Pro Plan",
-      price: "₨ 1,400 /month",
-      highlight: "Unlock full AI access + Ad calculators",
+      price: "₨ 799 /month",
+      highlight: "Unlock full AI + business insights at low cost",
       features: [
         "Unlimited AI chat sessions",
-        "Google & TikTok Ad Calculators",
-        "Inventory Coverage Analysis",
-        "Advanced business insights"
+        "Inventory Coverage & Insights",
+        "No ads — pure focus experience",
+        "Early access to marketing tools"
       ],
       buttonText: "Upgrade to Pro",
       border: "border-yellow-400 dark:border-yellow-500",
@@ -42,13 +42,13 @@ export default function UpgradePage() {
     },
     {
       name: "Business Plan",
-      price: "₨ 3,500 /month",
-      highlight: "Built for agencies & power users",
+      price: "₨ 1,999 /month",
+      highlight: "For teams, agencies & advanced users",
       features: [
-        "All Pro features",
-        "Team account access (up to 5 users)",
-        "Priority customer support",
-        "Exclusive campaign design tools"
+        "All Pro features + Team accounts",
+        "Advanced campaign design tools",
+        "Priority AI analysis support",
+        "Access to Google & TikTok Ad modules"
       ],
       buttonText: "Upgrade to Business",
       border: "border-yellow-600 dark:border-yellow-500",
