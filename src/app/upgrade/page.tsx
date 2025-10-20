@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { ArrowLeft } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import Link from 'next/link';
 
 export default function UpgradePage() {
   const router = useRouter();
@@ -60,28 +60,20 @@ export default function UpgradePage() {
     }
   ];
 
+  function UpgradeHeader() {
+    return (
+      <div className="absolute top-6 left-6 flex items-center gap-2 mb-4">
+        <Link href="/" className="flex items-center text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-5 w-5 mr-1" />
+          <span>Back to Home</span>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen px-6 py-12 bg-background text-foreground transition-colors duration-300 font-sans relative">
-       <div className="absolute top-6 left-6">
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="rounded-full h-10 w-10"
-                        onClick={() => router.back()}
-                    >
-                        <ArrowLeft className="h-5 w-5" />
-                        <span className="sr-only">Back to app</span>
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>Go back to previous page</p>
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
-       </div>
+       <UpgradeHeader />
       <h1 className="text-3xl font-bold text-center mb-2">Choose Your Plan 🚀</h1>
       <p className="text-center text-muted-foreground mb-10">
         Scale your business with AI-powered insights — choose the plan that fits you best.

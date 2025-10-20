@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -105,6 +106,23 @@
         "exportsUsed",
         "aiPromptsUsed"
       ]
+    },
+    "Plan": {
+      "title": "Plan",
+      "description": "Describes a pricing plan for the application.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID for the plan (e.g., 'pro')." },
+        "name": { "type": "string", "description": "Display name of the plan." },
+        "price": { "type": "string", "description": "Price description (e.g., '₨ 799 /month')." },
+        "highlight": { "type": "string", "description": "A short highlight of the plan." },
+        "features": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of features included in the plan."
+        }
+      },
+      "required": ["id", "name", "price", "features"]
     }
   },
   "auth": {
@@ -113,59 +131,21 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "UserProfile",
-          "schema": {
-            "$ref": "#/backend/entities/UserProfile"
-          },
-          "description": "Stores user profile information. Accessible only by the user and admins (if applicable).",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/history/{recordId}",
-        "definition": {
-          "entityName": "AnalysisRecord",
-          "schema": {
-            "$ref": "#/backend/entities/AnalysisRecord"
-          },
-          "description": "Stores analysis records (product launch plans and ad feasibility checks) for each user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user."
-            },
-            {
-              "name": "recordId",
-              "description": "The unique identifier for the analysis record."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/free_usage/{userId}",
-        "definition": {
-          "entityName": "FreeUsage",
-          "schema": {
-            "$ref": "#/backend/entities/FreeUsage"
-          },
-          "description": "Tracks free usage of report exports and AI prompts for each user. Document ID is the userId for quick lookups.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user or device."
-            }
-          ]
-        }
-      }
-    ]
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Stores user profile information. Accessible only by the user."
+    },
+    "/users/{userId}/history/{recordId}": {
+      "schema": { "$ref": "#/entities/AnalysisRecord" },
+      "description": "Stores analysis records for each user."
+    },
+    "/free_usage/{userId}": {
+      "schema": { "$ref": "#/entities/FreeUsage" },
+      "description": "Tracks free usage for each user."
+    },
+    "/plans/{planId}": {
+        "schema": { "$ref": "#/entities/Plan" },
+        "description": "Stores details about the pricing plans, which are publicly readable."
+    }
   }
 }
