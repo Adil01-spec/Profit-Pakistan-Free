@@ -123,6 +123,16 @@
         }
       },
       "required": ["id", "name", "price", "features"]
+    },
+    "Ad": {
+      "title": "Ad",
+      "description": "Describes an ad banner configuration.",
+      "type": "object",
+      "properties": {
+        "image": { "type": "string", "format": "uri", "description": "URL of the ad banner image." },
+        "link": { "type": "string", "format": "uri", "description": "Destination URL for the ad." },
+        "text": { "type": "string", "description": "Fallback text for the ad." }
+      }
     }
   },
   "auth": {
@@ -146,6 +156,10 @@
     "/plans/{planId}": {
         "schema": { "$ref": "#/entities/Plan" },
         "description": "Stores details about the pricing plans, which are publicly readable."
+    },
+    "/ads/{adId}": {
+        "schema": { "$ref": "#/entities/Ad" },
+        "description": "Stores ad configuration data, which is publicly readable."
     }
   }
 }

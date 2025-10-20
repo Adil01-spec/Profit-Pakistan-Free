@@ -1,39 +1,51 @@
+
 'use client';
 
-import { useEffect, useRef } from 'react';
-
-declare global {
-  interface Window {
-    adsbygoogle: any[];
-  }
-}
+import { useEffect, useState } from "react";
+import { useFirestore } from "@/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 export function AdBanner() {
-  const insRef = useRef<HTMLModElement>(null);
+  const [ad, setAd] = useState<{ image?: string; link?: string; text?: string } | null>(null);
+  const [error, setError] = useState(false);
+  const firestore = useFirestore();
 
   useEffect(() => {
-    // Only push if the ad slot hasn't been filled yet.
-    // AdSense adds a `data-adsbygoogle-status` attribute when it processes an ad.
-    if (insRef.current && !insRef.current.hasAttribute('data-adsbygoogle-status')) {
+    const fetchAd = async () => {
+      if (!firestore) return;
       try {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
+        const docRef = doc(firestore, "ads", "banner");
+        const adSnap = await getDoc(docRef);
+        if (adSnap.exists()) {
+          setAd(adSnap.data());
+        } else {
+          setError(true);
+        }
       } catch (err) {
-        console.error('AdSense error:', err);
+        console.error("Ad load failed:", err);
+        setError(true);
       }
-    }
-  }, []);
+    };
+    fetchAd();
+  }, [firestore]);
+
+  if (error || !ad) {
+    return (
+      <div className="w-full h-32 my-8 flex justify-center items-center bg-muted rounded-md">
+        <p className="text-sm text-muted-foreground">Ad loading...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="mx-auto my-8 max-w-full overflow-hidden text-center">
-      <ins
-        ref={insRef}
-        className="adsbygoogle"
-        style={{ display: 'block' }}
-        data-ad-client="ca-pub-XXXXXXXXXXXXXX" // Replace with your ad client ID
-        data-ad-slot="YYYYYYYYYY" // Replace with your ad slot ID
-        data-ad-format="auto"
-        data-full-width-responsive="true"
-      ></ins>
-    </div>
+    <a href={ad.link || "#"} target="_blank" rel="noopener noreferrer" className="block my-8">
+      <div className="w-full h-32 flex justify-center items-center rounded-md border bg-background hover:shadow-md transition">
+        {ad.image ? (
+          <img src={ad.image} alt="Ad banner" className="h-full object-contain rounded-md" />
+        ) : (
+          <p className="text-sm font-medium">{ad.text || "Sponsored Ad"}</p>
+        )}
+      </div>
+    </a>
   );
 }
