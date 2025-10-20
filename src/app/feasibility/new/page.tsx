@@ -112,6 +112,21 @@ export default function FeasibilityPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: 'onChange',
+    defaultValues: {
+        productName: '',
+        category: '',
+        sourcingCost: 0,
+        sellingPrice: 0,
+        shopifyPlan: 'trial',
+        shopifyMonthlyCost: 0,
+        bank: '',
+        debitCardTax: 0,
+        courier: 'TCS',
+        courierRate: courierRates.TCS.COD,
+        adBudget: 0,
+        costPerConversion: 0,
+        paymentType: 'COD',
+    },
   });
 
   const { watch, setValue, reset } = form;
@@ -124,7 +139,7 @@ export default function FeasibilityPage() {
             sourcingCost: 0,
             sellingPrice: 0,
             shopifyPlan: 'trial',
-            shopifyMonthlyCost: settings.shopifyPlans.find(p => p.plan === 'Regular')?.costPerMonth,
+            shopifyMonthlyCost: settings.shopifyPlans.find(p => p.plan === 'Regular')?.costPerMonth || 0,
             bank: settings.banks[0]?.name || '',
             debitCardTax: settings.banks[0]?.tax || 1.5,
             courier: 'TCS',
