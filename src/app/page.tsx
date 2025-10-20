@@ -20,13 +20,13 @@ export default function DashboardPage() {
       <Header />
       <main className="flex-1 p-4 sm:p-6 md:p-8 relative">
         <Button
-            className="absolute top-4 right-4 px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white rounded-xl shadow hover:opacity-90 transition"
+            className="absolute top-6 right-6 px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white rounded-xl shadow hover:opacity-90 transition"
             onClick={() => router.push('/upgrade')}
         >
             Upgrade 🔼
         </Button>
         <div className="mx-auto max-w-6xl">
-          <section className="mb-8">
+          <section className="mb-8 mt-10">
             <h1 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               Welcome to Profit Pakistan Pro!
             </h1>
@@ -92,8 +92,9 @@ export default function DashboardPage() {
               </Link>
           </div>
 
-
-          <AdBanner />
+          <div className="my-8">
+            <AdBanner />
+          </div>
 
           <section>
             <div className="flex items-center justify-between mb-4">

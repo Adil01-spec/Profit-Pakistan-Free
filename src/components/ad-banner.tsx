@@ -3,47 +3,79 @@
 
 import { useEffect, useState } from "react";
 import { useFirestore } from "@/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 
 export function AdBanner() {
-  const [ad, setAd] = useState<{ image?: string; link?: string; text?: string } | null>(null);
-  const [error, setError] = useState(false);
+  const [ads, setAds] = useState<any[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFading, setIsFading] = useState(false);
   const firestore = useFirestore();
 
   useEffect(() => {
-    const fetchAd = async () => {
+    const fetchAds = async () => {
       if (!firestore) return;
       try {
-        const docRef = doc(firestore, "ads", "banner");
-        const adSnap = await getDoc(docRef);
-        if (adSnap.exists()) {
-          setAd(adSnap.data());
+        const querySnapshot = await getDocs(collection(firestore, "ads"));
+        const fetchedAds = querySnapshot.docs.map((doc) => doc.data());
+        
+        if (fetchedAds.length > 0) {
+          setAds(fetchedAds);
         } else {
-          setError(true);
+          const res = await fetch("/ads.json");
+          const fallbackAds = await res.json();
+          setAds(fallbackAds);
         }
       } catch (err) {
-        console.error("Ad load failed:", err);
-        setError(true);
+        console.error("Ad load failed, using fallback:", err);
+        try {
+          const res = await fetch("/ads.json");
+          const fallbackAds = await res.json();
+          setAds(fallbackAds);
+        } catch (fallbackErr) {
+            console.error("Fallback ads failed to load:", fallbackErr);
+        }
       }
     };
-    fetchAd();
+    fetchAds();
   }, [firestore]);
 
-  if (error || !ad) {
+  useEffect(() => {
+    if (ads.length <= 1) return;
+
+    const timer = setInterval(() => {
+      setIsFading(true);
+      setTimeout(() => {
+        setCurrentIndex((prev) => (prev + 1) % ads.length);
+        setIsFading(false);
+      }, 500); // Fade duration
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(timer);
+  }, [ads]);
+
+  if (ads.length === 0) {
     return (
-      <div className="w-full h-32 my-8 flex justify-center items-center bg-muted rounded-md">
+      <div className="w-full my-8 h-24 flex justify-center items-center bg-muted rounded-md animate-pulse">
         <p className="text-sm text-muted-foreground">Ad loading...</p>
       </div>
     );
   }
 
+  const ad = ads[currentIndex];
+
   return (
     <a href={ad.link || "#"} target="_blank" rel="noopener noreferrer" className="block my-8">
-      <div className="w-full h-32 flex justify-center items-center rounded-md border bg-background hover:shadow-md transition">
+      <div className="w-full h-24 flex justify-center items-center rounded-md border bg-background hover:shadow-lg transition-all duration-300 overflow-hidden">
         {ad.image ? (
-          <img src={ad.image} alt="Ad banner" className="h-full object-contain rounded-md" />
+          <img
+            src={ad.image}
+            alt={ad.text || "Sponsored Ad"}
+            className={`h-full w-full object-contain transition-opacity duration-500 ease-in-out ${isFading ? 'opacity-0' : 'opacity-100'}`}
+          />
         ) : (
-          <p className="text-sm font-medium">{ad.text || "Sponsored Ad"}</p>
+          <p className={`text-sm font-medium transition-opacity duration-500 ease-in-out ${isFading ? 'opacity-0' : 'opacity-100'}`}>
+            {ad.text || "Sponsored Ad"}
+          </p>
         )}
       </div>
     </a>

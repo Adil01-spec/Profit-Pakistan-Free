@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { HistoryRecord } from '@/lib/types';
@@ -37,8 +38,6 @@ export function HistoryList({ history, loading }: HistoryListProps) {
   const handleDelete = async (reportId: string) => {
     setDeletingId(reportId);
     try {
-      // For a client-side only app, we just update the local state.
-      // If there was a backend, we'd call `deleteDoc` here.
       removeHistoryRecord(reportId);
       toast({
         title: 'Report Deleted 🗑️',
@@ -76,6 +75,9 @@ export function HistoryList({ history, loading }: HistoryListProps) {
         <p className="text-sm text-muted-foreground">
           Start by planning a product or checking feasibility.
         </p>
+        <Button asChild className="mt-4">
+          <Link href="/planner/new">Create First Report</Link>
+        </Button>
       </div>
     );
   }
@@ -102,7 +104,7 @@ export function HistoryList({ history, loading }: HistoryListProps) {
             className="block"
           >
             <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 overflow-hidden">
                 <div
                   className={cn('rounded-full p-2', {
                     'bg-green-100 dark:bg-green-900/30': record.type === 'Launch',
@@ -115,15 +117,15 @@ export function HistoryList({ history, loading }: HistoryListProps) {
                     <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   )}
                 </div>
-                <div>
-                  <p className="font-semibold">{record.productName}</p>
-                  <p className="text-sm text-muted-foreground">
+                <div className="overflow-hidden">
+                  <p className="font-semibold truncate">{record.productName}</p>
+                  <p className="text-sm text-muted-foreground truncate">
                     {format(new Date(record.date), 'PP')} &middot; {record.category}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <Badge variant={getStatusVariant(record.profitStatus) as any}>
+              <div className="flex items-center gap-4 pl-2">
+                <Badge variant={getStatusVariant(record.profitStatus) as any} className="hidden sm:inline-flex">
                   {record.profitStatus}
                 </Badge>
                 <ChevronRight className="h-5 w-5 text-muted-foreground transition-opacity group-hover:opacity-0" />
@@ -131,11 +133,12 @@ export function HistoryList({ history, loading }: HistoryListProps) {
             </div>
           </Link>
 
-           <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100">
+           <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 flex items-center">
              <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10">
                   <Trash2 className="h-4 w-4" />
+                  <span className="sr-only">Delete Report</span>
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>

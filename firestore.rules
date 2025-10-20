@@ -1,126 +1,119 @@
 /**
- * @fileoverview Firestore Security Rules for Profit Pakistan Pro.
+ * @fileOverview Firestore Security Rules for Profit Pakistan Pro.
  *
  * Core Philosophy:
- * This ruleset prioritizes user data privacy and enforces strict access control, while allowing public read access for specific data like ad configurations and pricing plans.
+ * This ruleset enforces a user-ownership model for user-specific data while allowing public read access to ads and pricing plans.
  *
  * Data Structure:
- * - User profiles and associated data (analysis history, free usage) are nested under `/users/{userId}`.
- * - Public data, such as ad configurations, are stored in top-level collections like `/ads/{adId}`.
+ * - /users/{userId}: User profiles, accessible only by the user.
+ * - /users/{userId}/history/{recordId}: Analysis records, accessible only by the user.
+ * - /free_usage/{userId}: Free usage tracking, accessible only by the user.
+ * - /plans/{planId}: Pricing plans, publicly readable.
+ * - /ads/{adId}: Ad configurations, publicly readable.
  *
  * Key Security Decisions:
- * - User data is accessible only by the authenticated user (ownership model).
- * - Public read access is granted for ad configurations and pricing plans to allow the application to function without requiring authentication for these features.
- * - All write access to user-specific collections is restricted to the authenticated user.
- * - Listing of user documents and subcollections is generally allowed to the owner, unless explicitly restricted.
+ * - Users can only access their own data (profiles, history, free usage).
+ * - Listing of documents in user-owned subcollections is allowed only by the owner.
+ * - Pricing plans and ads are publicly readable.
+ * - No write access is granted to clients for ads or plans. These are assumed to be managed via a backend process.
+ *
+ * Denormalization for Authorization:
+ *  - User ownership is enforced by matching the {userId} path segment with the `request.auth.uid`.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows public read access to ad configurations.  Writes are disallowed.
-     * @path /ads/{adId}
-     * @allow (get, list) - Any user, authenticated or not, can read ad data.
-     * @deny (create, update, delete) - No one can create, update, or delete ad data through the client.
-     * @principle Public read access for application configuration.
-     */
-    match /ads/{adId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
-    }
-
-    /**
-     * @description Enforces user-specific data access for profiles and history records.
+     * @description Allows users to read and write their own profile data.
      * @path /users/{userId}
-     * @allow (create) - A user can create their own profile document if the ID matches their auth UID.
-     * @allow (get, list, update, delete) - An authenticated user can only access their own data.
-     * @deny Mismatched user IDs or unauthenticated requests.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) - Authenticated user creating their own profile.
+     * @allow (get, update, delete) - Authenticated user accessing their own profile.
+     * @deny (create, update, delete) - Any other user attempting to modify this profile.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
-      allow get, list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      // isOwner function allows users to read and write their own profile data
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && resource != null;
+      allow delete: if isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Enforces user-specific data access for analysis history records.
+     * @description Allows users to read, create, update, and delete their own analysis records.
      * @path /users/{userId}/history/{recordId}
-     * @allow (create) - An authenticated user can only create new analysis records under their own user ID.
-     * @allow (get, list, update, delete) - An authenticated user can only access their own analysis history.
-     * @deny Mismatched user IDs or unauthenticated requests.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) - Authenticated user creating an analysis record under their own user ID.
+     * @allow (get, update, delete, list) - Authenticated user accessing their own analysis record.
+     * @deny (create, update, delete, list) - Any other user attempting to modify this analysis record.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId}/history/{recordId} {
-      allow get, list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
+      // isOwner function allows users to read and write their own profile data
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && resource != null;
+      allow delete: if isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Enforces user-specific data access for free usage tracking.
+     * @description Allows users to read and write their own free usage data.
      * @path /free_usage/{userId}
-     * @allow (create) - An authenticated user can create their own free usage document if the ID matches their auth UID.
-     * @allow (get, list, update, delete) - An authenticated user can only access their own free usage data.
-     * @deny Mismatched user IDs or unauthenticated requests.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) - Authenticated user creating their own free usage record.
+     * @allow (get, update, delete) - Authenticated user accessing their own free usage record.
+     * @deny (create, update, delete) - Any other user attempting to modify this free usage record.
+     * @principle Enforces document ownership for writes.
      */
     match /free_usage/{userId} {
-      allow get, list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isExistingOwner(userId);
-      allow delete: if isSignedIn() && isExistingOwner(userId);
-    }
+      // isOwner function allows users to read and write their own profile data
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
 
-     /**
-      * @description Allows public read access to pricing plans.  Writes are disallowed.
-      * @path /plans/{planId}
-      * @allow (get, list) - Any user, authenticated or not, can read plan data.
-      * @deny (create, update, delete) - No one can create, update, or delete plan data through the client.
-      * @principle Public read access for application configuration.
-      */
-    match /plans/{planId} {
-        allow get, list: if true;
-        allow create, update, delete: if false;
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && resource != null;
+      allow delete: if isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Restricts access to any other document in the database.
-     * @path /{document=**}
-     * @deny (get, list, create, update, delete) - No one can read or write to any other document not explicitly allowed.
-     * @principle Default deny rule for all other paths.
+     * @description Allows anyone to read pricing plans.
+     * @path /plans/{planId}
+     * @allow (get, list) - Any user, authenticated or not, can read pricing plans.
+     * @deny (create, update, delete) - No one can create, update, or delete pricing plans through client-side rules.
+     * @principle Publicly readable data.
      */
-    match /{document=**} {
-      allow read, write: if false;
+    match /plans/{planId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
-  }
 
-  /**
-   * @description Checks if the request is authenticated.
-   * @returns {boolean} True if the request has a valid auth token, false otherwise.
-   */
-  function isSignedIn() {
-    return request.auth != null;
-  }
-
-  /**
-   * @description Checks if the authenticated user ID matches the requested user ID.
-   * @param {string} userId - The user ID from the path.
-   * @returns {boolean} True if the user is signed in and the user ID matches, false otherwise.
-   */
-  function isOwner(userId) {
-    return isSignedIn() && request.auth.uid == userId;
-  }
-
-  /**
-   * @description Checks if the authenticated user is the owner of an existing document.
-   * @param {string} userId - The user ID from the path.
-   * @returns {boolean} True if the user is signed in, the user ID matches, and the resource exists, false otherwise.
-   */
-  function isExistingOwner(userId) {
-    return isOwner(userId) && resource != null;
+    /**
+     * @description Allows anyone to read ad configurations.
+     * @path /ads/{adId}
+     * @allow (get, list) - Any user, authenticated or not, can read ad configurations.
+     * @deny (create, update, delete) - No one can create, update, or delete ad configurations through client-side rules.
+     * @principle Publicly readable data.
+     */
+    match /ads/{adId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
   }
 }
