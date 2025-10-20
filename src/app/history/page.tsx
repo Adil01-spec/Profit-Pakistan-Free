@@ -1,7 +1,7 @@
+
 'use client';
 
 import { useHistory } from '@/hooks/use-history';
-import { Header } from '@/components/header';
 import { HistoryList } from '@/components/history/history-list';
 import { Card, CardContent } from '@/components/ui/card';
 import { SettingsDialog } from '@/components/settings-dialog';
@@ -12,7 +12,6 @@ export default function HistoryPage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col">
-      <Header />
       <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-4xl">
           <div className="flex items-center justify-between mb-6">

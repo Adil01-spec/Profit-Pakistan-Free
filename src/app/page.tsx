@@ -5,26 +5,16 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Lightbulb, BarChart3, ChevronRight, BrainCircuit } from 'lucide-react';
-import { Header } from '@/components/header';
 import { HistoryList } from '@/components/history/history-list';
 import { useHistory } from '@/hooks/use-history';
 import { AdBanner } from '@/components/ad-banner';
-import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
   const { history, loading: historyLoading } = useHistory();
-  const router = useRouter();
 
   return (
     <div className="flex min-h-screen w-full flex-col">
-      <Header />
-      <main className="flex-1 p-4 sm:p-6 md:p-8 relative">
-        <Button
-            className="absolute top-6 right-6 px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white rounded-xl shadow hover:opacity-90 transition"
-            onClick={() => router.push('/upgrade')}
-        >
-            Upgrade 🔼
-        </Button>
+      <main className="flex-1 p-4 sm:p-6 md:p-8">
         <div className="mx-auto max-w-6xl">
           <section className="mb-8 mt-10">
             <h1 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">

@@ -24,7 +24,6 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import { Header } from '@/components/header';
 import { Loader2, Info } from 'lucide-react';
 import type { LaunchPlan } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -250,212 +249,209 @@ export default function PlannerPage() {
   }
 
   return (
-    <>
-      <Header />
-      <main className="container mx-auto max-w-4xl p-4 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold md:text-3xl">
-              Product Launch Planner
-            </CardTitle>
-             <CardDescription>
-              Values update automatically as you type.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="productName"
-                    render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
-                        <FormLabel>Product Name</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="e.g., Handcrafted Leather Wallet"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
-                        <FormLabel>Product Category</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="e.g., Fashion Accessories"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="sourcingCost"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Sourcing Cost (per unit)</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="1000" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="sellingPrice"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Expected Selling Price</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="2500" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="marketingBudget"
-                    render={({ field }) => (
-                      <FormItem className="sm:col-span-2">
-                        <FormLabel>Marketing Budget (monthly)</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="50000" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <Card className="bg-muted/30">
-                  <CardHeader>
-                    <CardTitle className="text-lg">
-                      Courier, Payments &amp; Taxes
-                    </CardTitle>
-                    <CardDescription>
-                      Select payment type and courier to apply correct rates
-                      and taxes.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="paymentType"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                            Payment Type
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">{taxMessage}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </FormLabel>
-                          <Select
-                            onValueChange={(value: 'COD' | 'Online') => {
-                              field.onChange(value);
-                              handlePaymentTypeChange(value);
-                            }}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select payment type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="COD">
-                                Cash on Delivery (COD)
-                              </SelectItem>
-                              <SelectItem value="Online">
-                                Online / Non-COD
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="courier"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Courier Company</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a courier" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {Object.keys(courierRates).map((courierName) => (
-                                <SelectItem
-                                  key={courierName}
-                                  value={courierName}
-                                >
-                                  {courierName}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="courierRate"
-                      render={({ field }) => (
-                        <FormItem className="sm:col-span-2">
-                          <FormLabel>Courier Rate (per delivery)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              {...field}
-                              disabled={selectedCourier !== 'Other'}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </CardContent>
-                </Card>
-
-                {calculatedValues && <PlannerResults results={calculatedValues} />}
-
-                <Button type="submit" className="w-full" disabled={isSaving}>
-                  {isSaving && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+    <main className="container mx-auto max-w-4xl p-4 py-8">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold md:text-3xl">
+            Product Launch Planner
+          </CardTitle>
+           <CardDescription>
+            Values update automatically as you type.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="productName"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Product Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., Handcrafted Leather Wallet"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                  Save Report
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </main>
-    </>
+                />
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Product Category</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g., Fashion Accessories"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="sourcingCost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sourcing Cost (per unit)</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="1000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="sellingPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Expected Selling Price</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="2500" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="marketingBudget"
+                  render={({ field }) => (
+                    <FormItem className="sm:col-span-2">
+                      <FormLabel>Marketing Budget (monthly)</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="50000" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <Card className="bg-muted/30">
+                <CardHeader>
+                  <CardTitle className="text-lg">
+                    Courier, Payments &amp; Taxes
+                  </CardTitle>
+                  <CardDescription>
+                    Select payment type and courier to apply correct rates
+                    and taxes.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="paymentType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-2">
+                          Payment Type
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">{taxMessage}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </FormLabel>
+                        <Select
+                          onValueChange={(value: 'COD' | 'Online') => {
+                            field.onChange(value);
+                            handlePaymentTypeChange(value);
+                          }}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select payment type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="COD">
+                              Cash on Delivery (COD)
+                            </SelectItem>
+                            <SelectItem value="Online">
+                              Online / Non-COD
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="courier"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Courier Company</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a courier" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {Object.keys(courierRates).map((courierName) => (
+                              <SelectItem
+                                key={courierName}
+                                value={courierName}
+                              >
+                                {courierName}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="courierRate"
+                    render={({ field }) => (
+                      <FormItem className="sm:col-span-2">
+                        <FormLabel>Courier Rate (per delivery)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            disabled={selectedCourier !== 'Other'}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              {calculatedValues && <PlannerResults results={calculatedValues} />}
+
+              <Button type="submit" className="w-full" disabled={isSaving}>
+                {isSaving && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Save Report
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </main>
   );
 }

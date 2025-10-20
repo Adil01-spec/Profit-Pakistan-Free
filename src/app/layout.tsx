@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from '@/components/providers';
@@ -8,6 +9,7 @@ import { HistoryProvider } from '@/hooks/use-history';
 import Script from 'next/script';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { UsageProvider } from '@/hooks/use-usage';
+import { Header } from '@/components/header';
 
 export const metadata: Metadata = {
   title: 'Profit Pakistan Pro',
@@ -38,7 +40,8 @@ export default function RootLayout({
             <SettingsProvider>
               <HistoryProvider>
                 <UsageProvider>
-                    {children}
+                    <Header />
+                    <main>{children}</main>
                     <Toaster />
                 </UsageProvider>
               </HistoryProvider>

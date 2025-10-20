@@ -1,11 +1,17 @@
+
+'use client';
+
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from './ui/button';
 import { FolderClock } from 'lucide-react';
 import { SettingsDialog } from './settings-dialog';
+import { useRouter } from 'next/navigation';
 
 export function Header() {
+  const router = useRouter();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
@@ -26,6 +32,13 @@ export function Header() {
           </Button>
           <SettingsDialog />
           <ThemeToggle />
+          <Button
+            className="rounded-full text-sm font-medium px-5 py-2 transition-colors bg-primary hover:bg-primary/90"
+            variant="default"
+            onClick={() => router.push('/upgrade')}
+          >
+            Upgrade
+          </Button>
         </div>
       </div>
     </header>
