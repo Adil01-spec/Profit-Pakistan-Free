@@ -1,14 +1,29 @@
+
+'use client';
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { LaunchPlan, FeasibilityCheck } from "@/lib/types";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
-import { Download } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import type { UserOptions } from 'jspdf-autotable';
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 
 // Extend the jsPDF interface to include autoTable
 interface jsPDFWithAutoTable extends jsPDF {
@@ -300,19 +315,97 @@ const FeasibilityResult = ({ record }: { record: FeasibilityCheck }) => (
 
 export const ResultDisplay = ({ record }: ResultDisplayProps) => {
     const { toast } = useToast();
+    const [showAdPrompt, setShowAdPrompt] = useState(false);
+    const [isAdLoading, setIsAdLoading] = useState(false);
+    const [downloadType, setDownloadType] = useState<'pdf' | 'csv' | null>(null);
+
+    const checkAndTriggerDownload = (type: 'pdf' | 'csv') => {
+        const downloadCount = parseInt(sessionStorage.getItem('downloadCount') || '0');
+
+        if (downloadCount < 1) {
+            sessionStorage.setItem('downloadCount', String(downloadCount + 1));
+            if (type === 'pdf') {
+                handleDownloadPdf(record, toast);
+            } else {
+                handleDownloadCsv(record);
+            }
+        } else {
+            setDownloadType(type);
+            setShowAdPrompt(true);
+        }
+    };
+
+    const handleWatchAd = () => {
+        setIsAdLoading(true);
+        // Simulate watching an ad
+        setTimeout(() => {
+            sessionStorage.setItem('downloadCount', '0'); // Reset count
+            setIsAdLoading(false);
+            setShowAdPrompt(false);
+            toast({
+                title: '✅ Export unlocked',
+                description: 'Enjoy your download!',
+            });
+            // Trigger the intended download
+            if (downloadType) {
+                if (downloadType === 'pdf') {
+                    handleDownloadPdf(record, toast);
+                } else {
+                    handleDownloadCsv(record);
+                }
+                setDownloadType(null); // Reset after download
+            }
+        }, 1500); // Simulate ad delay
+    };
+
+    const onAdPromptOpenChange = (open: boolean) => {
+        if (!open) {
+            setShowAdPrompt(false);
+            if (!isAdLoading) {
+                 toast({
+                    variant: 'destructive',
+                    title: '⚠️ Watch a short ad to download again.',
+                });
+            }
+        }
+    }
+
+
     return (
-        <Card className="w-full overflow-hidden">
-            {record.type === 'Launch' ? <LaunchResult record={record as LaunchPlan} /> : <FeasibilityResult record={record as FeasibilityCheck} />}
-             <CardFooter className="flex-col sm:flex-row-reverse border-t pt-6 gap-2">
-                <Button onClick={() => handleDownloadPdf(record, toast)} className="w-full sm:w-auto">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download PDF
-                </Button>
-                <Button variant="outline" onClick={() => handleDownloadCsv(record)} className="w-full sm:w-auto">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download CSV
-                </Button>
-            </CardFooter>
-        </Card>
+        <>
+            <Card className="w-full overflow-hidden">
+                {record.type === 'Launch' ? <LaunchResult record={record as LaunchPlan} /> : <FeasibilityResult record={record as FeasibilityCheck} />}
+                <CardFooter className="flex-col sm:flex-row-reverse border-t pt-6 gap-2">
+                    <Button onClick={() => checkAndTriggerDownload('pdf')} className="w-full sm:w-auto">
+                        <Download className="mr-2 h-4 w-4" />
+                        Download PDF
+                    </Button>
+                    <Button variant="outline" onClick={() => checkAndTriggerDownload('csv')} className="w-full sm:w-auto">
+                        <Download className="mr-2 h-4 w-4" />
+                        Download CSV
+                    </Button>
+                </CardFooter>
+            </Card>
+
+             <AlertDialog open={showAdPrompt} onOpenChange={onAdPromptOpenChange}>
+                <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Unlock Another Download</AlertDialogTitle>
+                    <AlertDialogDescription>
+                    You’ve used your free report export for this session. Watch a short ad to unlock another download.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Maybe Later</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleWatchAd} disabled={isAdLoading}>
+                        {isAdLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Watch Ad
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
     );
 };
+
+    
