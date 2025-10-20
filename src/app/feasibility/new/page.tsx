@@ -104,7 +104,7 @@ export default function FeasibilityPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { addHistoryRecord } = useHistory();
-  const [settings, setSettings] = useSettings();
+  const [settings, setSettings, {isPersistent}] = useSettings();
   const [isSaving, setIsSaving] = useState(false);
   const [calculatedValues, setCalculatedValues] =
     useState<CalculatedValues>(null);
@@ -112,24 +112,31 @@ export default function FeasibilityPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     mode: 'onChange',
-    defaultValues: {
-      productName: '',
-      category: '',
-      sourcingCost: 0,
-      sellingPrice: 0,
-      shopifyPlan: 'trial',
-      shopifyMonthlyCost: settings.shopifyPlans.find(p => p.plan === 'Regular')?.costPerMonth,
-      bank: settings.banks[0]?.name || '',
-      debitCardTax: settings.banks[0]?.tax || 1.5,
-      courier: 'TCS',
-      courierRate: courierRates.TCS.COD,
-      adBudget: 0,
-      costPerConversion: 0,
-      paymentType: 'COD',
-    },
   });
 
-  const { watch, setValue } = form;
+  const { watch, setValue, reset } = form;
+
+  useEffect(() => {
+    if (isPersistent) {
+        reset({
+            productName: '',
+            category: '',
+            sourcingCost: 0,
+            sellingPrice: 0,
+            shopifyPlan: 'trial',
+            shopifyMonthlyCost: settings.shopifyPlans.find(p => p.plan === 'Regular')?.costPerMonth,
+            bank: settings.banks[0]?.name || '',
+            debitCardTax: settings.banks[0]?.tax || 1.5,
+            courier: 'TCS',
+            courierRate: courierRates.TCS.COD,
+            adBudget: 0,
+            costPerConversion: 0,
+            paymentType: 'COD',
+        });
+    }
+  }, [isPersistent, settings, reset]);
+
+
   const watchedSourcingCost = watch('sourcingCost');
   const watchedSellingPrice = watch('sellingPrice');
   const watchedAdBudget = watch('adBudget');
@@ -295,6 +302,16 @@ export default function FeasibilityPage() {
     } finally {
         setIsSaving(false);
     }
+  }
+  
+  if (!isPersistent) {
+    return (
+        <div className="flex min-h-screen flex-col">
+            <div className="flex flex-1 items-center justify-center">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        </div>
+    );
   }
 
   return (
