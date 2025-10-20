@@ -4,46 +4,44 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
-      "description": "Represents a user profile within the application.",
+      "description": "Represents a user profile in the Profit Pakistan Pro application.",
       "properties": {
         "id": {
           "type": "string",
           "description": "Unique identifier for the UserProfile entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "User's full name."
         },
         "email": {
           "type": "string",
           "description": "User's email address.",
           "format": "email"
         },
-        "isAdmin": {
-          "type": "boolean",
-          "description": "Flag indicating whether the user is an administrator."
+        "displayName": {
+          "type": "string",
+          "description": "User's display name."
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "URL of the user's profile photo, if available.",
+          "format": "uri"
         }
       },
       "required": [
-        "id",
-        "name",
-        "email",
-        "isAdmin"
+        "id"
       ]
     },
-    "Report": {
+    "AnalysisRecord": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Report",
+      "title": "AnalysisRecord",
       "type": "object",
-      "description": "Represents a product launch or ad feasibility analysis report.",
+      "description": "Represents a single analysis record (either product launch plan or ad feasibility check) associated with a user.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Report entity."
+          "description": "Unique identifier for the AnalysisRecord entity."
         },
         "userId": {
           "type": "string",
-          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N Report). The ID of the user who created this report."
+          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N AnalysisRecord)"
         },
         "productName": {
           "type": "string",
@@ -55,7 +53,7 @@
         },
         "date": {
           "type": "string",
-          "description": "Date and time the report was generated.",
+          "description": "Date and time when the analysis was performed.",
           "format": "date-time"
         },
         "type": {
@@ -64,7 +62,7 @@
         },
         "results": {
           "type": "string",
-          "description": "JSON string representing the analysis results."
+          "description": "The JSON results of the analysis."
         }
       },
       "required": [
@@ -77,115 +75,35 @@
         "results"
       ]
     },
-    "CourierRate": {
+    "FreeUsage": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "CourierRate",
+      "title": "FreeUsage",
       "type": "object",
-      "description": "Represents courier rates for COD and Non-COD shipments.",
+      "description": "Tracks the free usage of report exports and AI prompts for a user within a 24-hour period.",
       "properties": {
-        "id": {
+        "userId": {
           "type": "string",
-          "description": "Unique identifier for the CourierRate entity."
+          "description": "Unique identifier of the user or device."
         },
-        "courier": {
+        "lastExportTime": {
           "type": "string",
-          "description": "Name of the courier company."
-        },
-        "cod": {
-          "type": "number",
-          "description": "Rate for Cash on Delivery (COD) shipments."
-        },
-        "nonCod": {
-          "type": "number",
-          "description": "Rate for Non-Cash on Delivery shipments."
-        }
-      },
-      "required": [
-        "id",
-        "courier",
-        "cod",
-        "nonCod"
-      ]
-    },
-    "FbrRate": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FbrRate",
-      "type": "object",
-      "description": "Represents FBR tax percentages for COD and Non-COD transactions.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the FbrRate entity."
-        },
-        "cod": {
-          "type": "number",
-          "description": "Tax percentage for Cash on Delivery (COD) transactions."
-        },
-        "nonCod": {
-          "type": "number",
-          "description": "Tax percentage for Non-Cash on Delivery transactions."
-        },
-        "lastUpdated": {
-          "type": "string",
-          "description": "Date the tax rates were last updated.",
+          "description": "Timestamp of the last report export.",
           "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "cod",
-        "nonCod",
-        "lastUpdated"
-      ]
-    },
-    "BankFee": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "BankFee",
-      "type": "object",
-      "description": "Represents international card transaction fees for different banks.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the BankFee entity."
         },
-        "bank": {
-          "type": "string",
-          "description": "Name of the bank."
-        },
-        "feePercent": {
+        "exportsUsedToday": {
           "type": "number",
-          "description": "Percentage fee charged for international card transactions."
-        }
-      },
-      "required": [
-        "id",
-        "bank",
-        "feePercent"
-      ]
-    },
-    "ShopifyPlan": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ShopifyPlan",
-      "type": "object",
-      "description": "Represents Shopify plan pricing data.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the ShopifyPlan entity."
+          "description": "Number of report exports used today."
         },
-        "plan": {
-          "type": "string",
-          "description": "Name of the Shopify plan (e.g., 'Basic', 'Regular')."
-        },
-        "costPerMonth": {
+        "aiPromptsUsedToday": {
           "type": "number",
-          "description": "Monthly cost of the Shopify plan in USD."
+          "description": "Number of AI prompts used today."
         }
       },
       "required": [
-        "id",
-        "plan",
-        "costPerMonth"
+        "userId",
+        "lastExportTime",
+        "exportsUsedToday",
+        "aiPromptsUsedToday"
       ]
     }
   },
@@ -204,7 +122,7 @@
           "schema": {
             "$ref": "#/backend/entities/UserProfile"
           },
-          "description": "Stores user profile information, including the 'isAdmin' flag for authorization. The 'isAdmin' flag is denormalized here to make access control more efficient (Authorization Independence).",
+          "description": "Stores user profile information. Accessible only by the user and admins (if applicable).",
           "params": [
             {
               "name": "userId",
@@ -214,90 +132,42 @@
         }
       },
       {
-        "path": "/users/{userId}/reports/{reportId}",
+        "path": "/users/{userId}/history/{recordId}",
         "definition": {
-          "entityName": "Report",
+          "entityName": "AnalysisRecord",
           "schema": {
-            "$ref": "#/backend/entities/Report"
+            "$ref": "#/backend/entities/AnalysisRecord"
           },
-          "description": "Stores user-generated reports. Access is restricted to the owning user.",
+          "description": "Stores analysis records (product launch plans and ad feasibility checks) for each user.",
           "params": [
             {
               "name": "userId",
               "description": "The unique identifier for the user."
             },
             {
-              "name": "reportId",
-              "description": "The unique identifier for the report."
+              "name": "recordId",
+              "description": "The unique identifier for the analysis record."
             }
           ]
         }
       },
       {
-        "path": "/courierRates/{courierRateId}",
+        "path": "/free_usage/{userId}",
         "definition": {
-          "entityName": "CourierRate",
+          "entityName": "FreeUsage",
           "schema": {
-            "$ref": "#/backend/entities/CourierRate"
+            "$ref": "#/backend/entities/FreeUsage"
           },
-          "description": "Stores courier rates managed by admins.",
+          "description": "Tracks free usage of report exports and AI prompts for each user. Document ID is the userId for quick lookups.",
           "params": [
             {
-              "name": "courierRateId",
-              "description": "The unique identifier for the courier rate."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/fbrRates/{fbrRateId}",
-        "definition": {
-          "entityName": "FbrRate",
-          "schema": {
-            "$ref": "#/backend/entities/FbrRate"
-          },
-          "description": "Stores FBR tax rates managed by admins.",
-          "params": [
-            {
-              "name": "fbrRateId",
-              "description": "The unique identifier for the FBR rate."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/bankFees/{bankFeeId}",
-        "definition": {
-          "entityName": "BankFee",
-          "schema": {
-            "$ref": "#/backend/entities/BankFee"
-          },
-          "description": "Stores bank fees managed by admins.",
-          "params": [
-            {
-              "name": "bankFeeId",
-              "description": "The unique identifier for the bank fee."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/shopifyPlans/{shopifyPlanId}",
-        "definition": {
-          "entityName": "ShopifyPlan",
-          "schema": {
-            "$ref": "#/backend/entities/ShopifyPlan"
-          },
-          "description": "Stores Shopify plan data managed by admins.",
-          "params": [
-            {
-              "name": "shopifyPlanId",
-              "description": "The unique identifier for the Shopify plan."
+              "name": "userId",
+              "description": "The unique identifier for the user or device."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support an admin management system for Profit Pakistan Pro, focusing on secure data access and role-based authorization. It leverages structural segregation and denormalization to achieve authorization independence and simplify security rules. The core principle is to separate user-specific data from admin-managed settings and rates, ensuring that users can only access their own reports while admins have broader access to configuration data. Authorization Independence is achieved by storing the `isAdmin` flag directly within the user profile, eliminating the need for `get()` calls in security rules to determine admin status. This allows for atomic operations and easier debugging.\n\nQAPs (Rules are not Filters) are supported through structural segregation. User reports are stored under `/users/{userId}/reports/{reportId}`, which allows secure `list` operations for a specific user's reports using path-based rules. Admin-managed data, such as courier rates and FBR rates, are stored in separate collections at the root level (e.g., `/courierRates/{courierRateId}`), enabling admins to `list`, `read`, `write`, and `delete` these settings without affecting user data access. These top-level collections are protected by checking the `isAdmin` status in the security rules. Finally, the Membership Map is not required, because the administrative data does not require collaborative access."
+    "reasoning": "This design prioritizes authorization independence and QAPs. User profiles and analysis records are stored under user-specific paths for private data. The `free_usage` collection stores usage data, using the `userId` as the document ID. This is crucial for quick lookups and managing free usage limits for both authenticated and anonymous users. The `userId` also helps with querying and enforcing limits. By storing the `free_usage` documents separately and not as a subcollection of user profiles, we maintain authorization independence and avoid the need for `get()` calls in security rules. This enables atomic operations and simplifies security rule debugging. The path-based ownership of `AnalysisRecord` ensures that list operations (QAPs) can be secured by checking `request.auth.uid == userId`. The `FreeUsage` data is segregated into its own collection to enforce access rules consistently, preventing unauthorized modifications or bypass attempts. Timestamps (`lastExportTime`) are essential for resetting counters after 24 hours and enforcing usage limits. Explicitly storing usage counts (`exportsUsedToday`, `aiPromptsUsedToday`) makes the state clear and predictable."
   }
 }

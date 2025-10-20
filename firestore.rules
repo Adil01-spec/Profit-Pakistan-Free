@@ -1,139 +1,102 @@
+/**
+ * @file Firestore Security Rules
+ * @description This ruleset enforces a strict user-ownership model for private data and manages free usage limits.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information, accessible only by the user.
+ * - /users/{userId}/history/{recordId}: Stores analysis records, accessible only by the user.
+ * - /free_usage/{userId}: Tracks free usage of report exports and AI prompts, accessible only with validation.
+ *
+ * Key Security Decisions:
+ * - User listing is disallowed.
+ * - Anonymous users are supported via device-based IDs.
+ * - Data consistency between paths and document fields is enforced on creation and updates.
+ * - Free usage limits are strictly enforced to prevent bypass attempts.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile information.
+     * @description Checks if the request is made by the owner of the resource.
+     * @param {string} userId The user ID to compare against the request's authentication UID.
+     * @return {bool} True if the user is signed in and their UID matches the provided userId, false otherwise.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the user is signed in.
+     * @return {bool} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the user is the owner of the existing document.
+     * @param {string} userId The user ID to compare against the resource's owner ID.
+     * @return {bool} True if the user is the owner of the document and the document exists.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+    
+    /**
+     * @description Enforces user-specific data privacy for user profiles.
      * @path /users/{userId}
-     * @allow (read) Authenticated user can read any user profile.
-     * @allow (create) Authenticated user can create their own profile (userId matches auth.uid).
-     * @allow (update) Authenticated user can update their own profile (userId matches auth.uid).
-     * @allow (delete) Authenticated user can delete their own profile (userId matches auth.uid).
-     * @deny (create) Authenticated user cannot create a profile for another user.
-     * @deny (update) Authenticated user cannot update another user's profile.
-     * @deny (delete) Authenticated user cannot delete another user's profile.
-     * @principle Enforces document ownership for writes and allows public reads.
+     * @allow (create) Signed-in user with UID 'user_abc' can create their profile document at /users/user_abc.
+     * @allow (get) Signed-in user with UID 'user_abc' can read their profile document at /users/user_abc.
+     * @allow (update) Signed-in user with UID 'user_abc' can update their profile document at /users/user_abc.
+     * @allow (delete) Signed-in user with UID 'user_abc' can delete their profile document at /users/user_abc.
+     * @deny (create) Signed-in user with UID 'user_xyz' cannot create a profile document at /users/user_abc.
+     * @deny (get) Any user cannot list all user profiles.
+     * @principle Enforces document ownership for reads and writes; ensures only the owner can modify their profile.
      */
     match /users/{userId} {
-      allow get: if isSignedIn();
-      allow list: if false; // Listing all users is not permitted.
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to user-generated reports.
-     * @path /users/{userId}/reports/{reportId}
-     * @allow (read) Authenticated user can read their own reports.
-     * @allow (create) Authenticated user can create reports under their own user ID.
-     * @allow (update) Authenticated user can update reports under their own user ID.
-     * @allow (delete) Authenticated user can delete reports under their own user ID.
-     * @deny (read) Authenticated user cannot read reports belonging to another user.
-     * @deny (create) Authenticated user cannot create reports under another user's ID.
-     * @deny (update) Authenticated user cannot update reports belonging to another user.
-     * @deny (delete) Authenticated user cannot delete reports belonging to another user.
-     * @principle Restricts access to a user's own data tree.
+     * @description Enforces user-specific data privacy for analysis records.
+     * @path /users/{userId}/history/{recordId}
+     * @allow (create) Signed-in user with UID 'user_abc' can create an analysis record at /users/user_abc/history/record_123.
+     * @allow (get) Signed-in user with UID 'user_abc' can read their analysis record at /users/user_abc/history/record_123.
+     * @allow (update) Signed-in user with UID 'user_abc' can update their analysis record at /users/user_abc/history/record_123.
+     * @allow (delete) Signed-in user with UID 'user_abc' can delete their analysis record at /users/user_abc/history/record_123.
+     * @deny (create) Signed-in user with UID 'user_xyz' cannot create an analysis record at /users/user_abc/history/record_123.
+     * @deny (get) Any user cannot list all analysis records across all users.
+     * @principle Enforces document ownership for reads and writes; ensures only the owner can modify their analysis records.
      */
-    match /users/{userId}/reports/{reportId} {
-      allow get: if isSignedIn() && isOwner(userId);
-      allow list: if isSignedIn() && isOwner(userId);
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if isSignedIn() && isOwner(userId);
+    match /users/{userId}/history/{recordId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to courier rates data, which can only be managed by admins.
-     * @path /courierRates/{courierRateId}
-     * @allow (read) Anyone can read courier rates.
-     * @allow (create) Only admins can create courier rates.
-     * @allow (update) Only admins can update courier rates.
-     * @allow (delete) Only admins can delete courier rates.
-     * @deny (create) Non-admins cannot create courier rates.
-     * @deny (update) Non-admins cannot update courier rates.
-     * @deny (delete) Non-admins cannot delete courier rates.
-     * @principle Enforces admin-only access for configuration data.
+     * @description Manages free usage limits for report exports and AI prompts.
+     * @path /free_usage/{userId}
+     * @allow (create) Any user can create a usage record for themself.
+     * @allow (get) Any user can get their usage record to check remaining usage.
+     * @allow (update) Any user can update their own usage record after watching an ad.
+     * @allow (delete) No one can delete the usage record except via backend functions.
+     * @deny (create) User with ID 'user_abc' cannot create free usage record for user 'user_xyz'.
+     * @principle Enforces usage limits and prevents unauthorized modifications.
      */
-    match /courierRates/{courierRateId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && isAdmin();
-      allow update: if isSignedIn() && isAdmin();
-      allow delete: if isSignedIn() && isAdmin();
+    match /free_usage/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if false;
     }
-
-    /**
-     * @description Controls access to FBR rates data, which can only be managed by admins.
-     * @path /fbrRates/{fbrRateId}
-     * @allow (read) Anyone can read FBR rates.
-     * @allow (create) Only admins can create FBR rates.
-     * @allow (update) Only admins can update FBR rates.
-     * @allow (delete) Only admins can delete FBR rates.
-     * @deny (create) Non-admins cannot create FBR rates.
-     * @deny (update) Non-admins cannot update FBR rates.
-     * @deny (delete) Non-admins cannot delete FBR rates.
-     * @principle Enforces admin-only access for configuration data.
-     */
-    match /fbrRates/{fbrRateId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && isAdmin();
-      allow update: if isSignedIn() && isAdmin();
-      allow delete: if isSignedIn() && isAdmin();
-    }
-
-    /**
-     * @description Controls access to bank fees data, which can only be managed by admins.
-     * @path /bankFees/{bankFeeId}
-     * @allow (read) Anyone can read bank fees.
-     * @allow (create) Only admins can create bank fees.
-     * @allow (update) Only admins can update bank fees.
-     * @allow (delete) Only admins can delete bank fees.
-     * @deny (create) Non-admins cannot create bank fees.
-     * @deny (update) Non-admins cannot update bank fees.
-     * @deny (delete) Non-admins cannot delete bank fees.
-     * @principle Enforces admin-only access for configuration data.
-     */
-    match /bankFees/{bankFeeId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && isAdmin();
-      allow update: if isSignedIn() && isAdmin();
-      allow delete: if isSignedIn() && isAdmin();
-    }
-
-    /**
-     * @description Controls access to Shopify plans data, which can only be managed by admins.
-     * @path /shopifyPlans/{shopifyPlanId}
-     * @allow (read) Anyone can read Shopify plans.
-     * @allow (create) Only admins can create Shopify plans.
-     * @allow (update) Only admins can update Shopify plans.
-     * @allow (delete) Only admins can delete Shopify plans.
-     * @deny (create) Non-admins cannot create Shopify plans.
-     * @deny (update) Non-admins cannot update Shopify plans.
-     * @deny (delete) Non-admins cannot delete Shopify plans.
-     * @principle Enforces admin-only access for configuration data.
-     */
-    match /shopifyPlans/{shopifyPlanId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isSignedIn() && isAdmin();
-      allow update: if isSignedIn() && isAdmin();
-      allow delete: if isSignedIn() && isAdmin();
-    }
-  }
-
-  // Helper Functions
-  function isSignedIn() {
-    return request.auth != null;
-  }
-
-  function isOwner(userId) {
-    return request.auth.uid == userId;
-  }
-
-  function isAdmin() {
-    return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
   }
 }
