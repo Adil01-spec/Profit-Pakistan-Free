@@ -9,14 +9,22 @@ import { Header } from '@/components/header';
 import { HistoryList } from '@/components/history/history-list';
 import { useHistory } from '@/hooks/use-history';
 import { AdBanner } from '@/components/ad-banner';
+import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
   const { history, loading: historyLoading } = useHistory();
+  const router = useRouter();
 
   return (
     <div className="flex min-h-screen w-full flex-col">
       <Header />
-      <main className="flex-1 p-4 sm:p-6 md:p-8">
+      <main className="flex-1 p-4 sm:p-6 md:p-8 relative">
+        <Button
+            className="absolute top-4 right-4 px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white rounded-xl shadow hover:opacity-90 transition"
+            onClick={() => router.push('/upgrade')}
+        >
+            Upgrade 🔼
+        </Button>
         <div className="mx-auto max-w-6xl">
           <section className="mb-8">
             <h1 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
