@@ -32,7 +32,7 @@ export function MarketingAssistantCard() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Hi, I’m ProfitGen — your smart marketing assistant. I’ll help you with ads, Shopify strategy, and profit optimization.',
+      content: '💎 ProfitGen says: Hi, I’m ProfitGen — your smart marketing assistant. I’ll help you improve your ads, optimize Shopify sales, and increase profitability — all tailored for Pakistani entrepreneurs.',
     },
   ]);
   const [input, setInput] = useState('');
@@ -67,7 +67,7 @@ export function MarketingAssistantCard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ messages: newMessagesForApi }),
+        body: JSON.stringify({ messages: newMessagesForApi.slice(1) }), // Exclude initial prompt
       });
 
       if (!response.ok) {
@@ -127,7 +127,7 @@ export function MarketingAssistantCard() {
       <Card className="flex h-full flex-col">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">ProfitGen</CardTitle>
-          <CardDescription>Your Smart Marketing Assistant.</CardDescription>
+          <CardDescription>Smart insights for your next business move.</CardDescription>
         </CardHeader>
         <CardContent className="flex-grow flex flex-col p-0">
           <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>

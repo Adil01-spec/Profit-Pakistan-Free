@@ -72,7 +72,7 @@ export default function DashboardPage() {
                     </CardHeader>
                     <CardContent className="flex-grow">
                       <p className="text-muted-foreground">
-                        Your Smart Marketing Assistant. Get instant advice on product promotion, ads, or campaign strategy.
+                        Smart insights for your next business move.
                       </p>
                     </CardContent>
                     <div className="bg-muted/50 px-6 py-3 text-sm font-medium text-primary flex items-center">
