@@ -18,7 +18,7 @@ export default function DashboardPage() {
         <div className="mx-auto max-w-6xl">
           <section className="mb-8 mt-10">
             <h1 className="mb-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-              Welcome to Profit Pakistan Pro!
+              Welcome to Profit Pakistan (Free)!
             </h1>
             <p className="text-lg text-muted-foreground">
               Your financial co-pilot for e-commerce in Pakistan. What would you like to analyze today?

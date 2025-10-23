@@ -19,7 +19,7 @@ export function Header() {
           <Link href="/" className="flex items-center space-x-2">
             <Logo className="h-8 w-8" />
             <span className="font-bold font-headline sm:inline-block">
-              Profit Pakistan Pro
+              Profit Pakistan (Free)
             </span>
           </Link>
         </div>

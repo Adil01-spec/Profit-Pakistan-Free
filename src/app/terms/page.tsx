@@ -15,10 +15,10 @@ export default function TermsPage() {
                 This is a placeholder for your Terms of Service.
             </p>
             <p>
-                By accessing the website at Profit Pakistan Pro, you are agreeing to be bound by these terms of service, all applicable laws and regulations, and agree that you are responsible for compliance with any applicable local laws.
+                By accessing the website at Profit Pakistan (Free), you are agreeing to be bound by these terms of service, all applicable laws and regulations, and agree that you are responsible for compliance with any applicable local laws.
             </p>
             <p>
-                Permission is granted to temporarily download one copy of the materials (information or software) on Profit Pakistan Pro's website for personal, non-commercial transitory viewing only.
+                Permission is granted to temporarily download one copy of the materials (information or software) on Profit Pakistan (Free)'s website for personal, non-commercial transitory viewing only.
             </p>
         </CardContent>
       </Card>

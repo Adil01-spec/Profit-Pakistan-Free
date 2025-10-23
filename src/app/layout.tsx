@@ -13,8 +13,8 @@ import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 
 export const metadata: Metadata = {
-  title: 'Profit Pakistan Pro',
-  description: 'Analyze financial feasibility for your Shopify store in Pakistan.',
+  title: 'Profit Pakistan (Free)',
+  description: 'A free profitability and ROAS calculator designed for Pakistani entrepreneurs to analyze products, marketing performance, and ad ROI.',
 };
 
 export default function RootLayout({

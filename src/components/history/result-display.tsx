@@ -149,7 +149,7 @@ const handleDownloadPdf = (record: LaunchPlan | FeasibilityCheck, toast: any) =>
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(primaryColor);
         doc.setFontSize(20);
-        doc.text("Profit Pakistan Pro", 105, 20, { align: 'center' });
+        doc.text("Profit Pakistan (Free)", 105, 20, { align: 'center' });
         
         doc.setFontSize(14);
         doc.setTextColor(textColor);
