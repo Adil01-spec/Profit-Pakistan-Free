@@ -46,6 +46,7 @@ import {
 import { courierRates } from '@/lib/courier-rates';
 import { AdBanner } from '@/components/ad-banner';
 import { useExchangeRate } from '@/hooks/use-exchange-rate';
+import { format } from 'date-fns';
 
 // Helper function to safely format numbers
 const formatNumber = (num: any, decimals = 0) => {
@@ -101,6 +102,30 @@ const formSchema = z
 
 type CalculatedValues = Omit<FeasibilityCheck, 'id' | 'date'> | null;
 
+function ManualRateInput({ onSetRate, lastSavedRate }: { onSetRate: (rate: number) => void; lastSavedRate?: number }) {
+    const [manualRate, setManualRate] = useState(lastSavedRate || 280);
+
+    const handleManualSubmit = () => {
+        if(manualRate > 0) {
+            onSetRate(manualRate);
+        }
+    };
+
+    return (
+        <div className="flex items-center gap-2 mt-2 p-3 rounded-md border border-dashed border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
+            <Input 
+                type="number" 
+                value={manualRate} 
+                onChange={(e) => setManualRate(parseFloat(e.target.value))}
+                placeholder="e.g. 280"
+                className="w-40"
+            />
+            <Button onClick={handleManualSubmit} size="sm">Set Rate</Button>
+            <p className="text-xs text-muted-foreground">Enter USD to PKR rate.</p>
+        </div>
+    );
+}
+
 export default function FeasibilityPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -109,7 +134,7 @@ export default function FeasibilityPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [calculatedValues, setCalculatedValues] =
     useState<CalculatedValues>(null);
-  const { rate: usdToPkrRate, isLoading: isRateLoading } = useExchangeRate();
+  const { rate: usdToPkrRate, isLoading: isRateLoading, lastUpdated, showManualInput, setManualRate, lastSavedRate } = useExchangeRate();
   const [effectiveRate, setEffectiveRate] = useState<number | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -192,12 +217,12 @@ export default function FeasibilityPage() {
     watchedShopifyPlan === 'trial' ? 1 : toNum(watchedShopifyMonthlyCost);
     const paymentType = watchedPaymentType;
     
-    if (sellingPrice <= 0 || sellingPrice <= sourcingCost) {
+    if (sellingPrice <= 0 || sellingPrice <= sourcingCost || !effectiveRate) {
       setCalculatedValues(null);
       return;
     }
 
-    const shopifyCostPkr = shopifyMonthlyCost * (effectiveRate || 300);
+    const shopifyCostPkr = shopifyMonthlyCost * effectiveRate;
     const totalMonthlyFixedCosts = shopifyCostPkr + adBudget;
     const fbrTaxRate = paymentType === 'COD' ? 0.02 : 0.01;
     const fbrTax = sellingPrice * fbrTaxRate;
@@ -282,6 +307,7 @@ export default function FeasibilityPage() {
   }, [paymentType, selectedCourier, setValue]);
 
   const handleBankChange = (bankName: string) => {
+    if (!settings || !settings.banks) return;
     const selectedBank = settings.banks.find((b) => b.name === bankName);
     if (selectedBank) {
       setValue('bank', selectedBank.name, { shouldValidate: true });
@@ -582,7 +608,7 @@ export default function FeasibilityPage() {
                                 </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                {settings.banks.map((b) => (
+                                {settings?.banks.map((b) => (
                                 <SelectItem key={b.name} value={b.name}>
                                     {b.name}
                                 </SelectItem>
@@ -603,6 +629,15 @@ export default function FeasibilityPage() {
                         💰 <b>Effective USD Rate:</b> ₨{effectiveRate.toFixed(2)} (includes {watchedBank}'s {watchedDebitCardTax}% conversion fee)
                         </p>
                     ) : null}
+
+                     {showManualInput && (
+                        <ManualRateInput onSetRate={setManualRate} lastSavedRate={lastSavedRate} />
+                    )}
+
+                    {lastUpdated && (
+                        <p className="text-xs text-gray-500">💱 Last updated: {format(new Date(lastUpdated), "dd MMM yyyy, h:mm a")}</p>
+                    )}
+
                     </div>
 
                   <FormField

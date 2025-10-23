@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocalStorage } from 'usehooks-ts';
 import { useToast } from '@/hooks/use-toast';
 
@@ -22,29 +22,43 @@ export function useExchangeRate() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const [showManualInput, setShowManualInput] = useState(false);
+
+  const fetchWithFallback = useCallback(async () => {
+    try {
+      const response = await fetch(PRIMARY_API_URL);
+      if (!response.ok) throw new Error('Primary API failed');
+      const data = await response.json();
+      if (data.result === 'success' && data.rates.PKR) {
+        return data.rates.PKR;
+      }
+      throw new Error('Invalid primary API response');
+    } catch (e) {
+      console.warn("Primary exchange rate API failed, trying backup:", e);
+      const backupResponse = await fetch(BACKUP_API_URL);
+      if (!backupResponse.ok) throw new Error('Backup API also failed');
+      const backupData = await backupResponse.json();
+      if (backupData.success && backupData.rates.PKR) {
+        return backupData.rates.PKR;
+      }
+      throw new Error('Invalid backup API response');
+    }
+  }, []);
+
+  const setManualRate = useCallback((newRate: number) => {
+    setRateData({
+        rate: newRate,
+        lastUpdated: Date.now()
+    });
+    setShowManualInput(false);
+     toast({
+        title: "Rate Updated",
+        description: `Manual USD-PKR rate set to ${newRate}.`
+    });
+  }, [setRateData, toast]);
+
 
   useEffect(() => {
-    const fetchWithFallback = async () => {
-      try {
-        const response = await fetch(PRIMARY_API_URL);
-        if (!response.ok) throw new Error('Primary API failed');
-        const data = await response.json();
-        if (data.result === 'success' && data.rates.PKR) {
-          return data.rates.PKR;
-        }
-        throw new Error('Invalid primary API response');
-      } catch (e) {
-        console.warn("Primary exchange rate API failed, trying backup:", e);
-        const backupResponse = await fetch(BACKUP_API_URL);
-        if (!backupResponse.ok) throw new Error('Backup API also failed');
-        const backupData = await backupResponse.json();
-        if (backupData.success && backupData.rates.PKR) {
-          return backupData.rates.PKR;
-        }
-        throw new Error('Invalid backup API response');
-      }
-    };
-
     const manageRateFetching = async () => {
       setIsLoading(true);
       setError(null);
@@ -54,6 +68,7 @@ export function useExchangeRate() {
           rate: newRate,
           lastUpdated: Date.now(),
         });
+        setShowManualInput(false);
       } catch (e: any) {
         console.error('Exchange rate fetch error (both APIs):', e);
         setError(e.message || 'Could not fetch rate.');
@@ -61,9 +76,16 @@ export function useExchangeRate() {
           toast({
             variant: 'destructive',
             title: '⚠️ Live exchange rate unavailable.',
-            description: 'Using last saved rate. Calculations may be outdated.',
+            description: 'Using last saved rate. You can also enter it manually.',
           });
+        } else {
+             toast({
+                variant: 'destructive',
+                title: "⚠️ Could not fetch live USD→PKR rate.",
+                description: "Please enter it manually below."
+            });
         }
+        setShowManualInput(true);
       } finally {
         setIsLoading(false);
       }
@@ -83,5 +105,8 @@ export function useExchangeRate() {
     isLoading,
     error,
     lastUpdated: rateData?.lastUpdated,
+    showManualInput,
+    setManualRate,
+    lastSavedRate: rateData?.rate,
   };
 }
