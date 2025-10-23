@@ -3,11 +3,11 @@
 export async function POST(req: Request) {
   const { messages } = await req.json();
 
-  if (!process.env.LEMONFOX_API_KEY) {
+  if (!process.env.NEXT_PUBLIC_AI_API_KEY) {
     return new Response(
       JSON.stringify({
         error:
-          'API key not found. Please set LEMONFOX_API_KEY in your environment variables.',
+          'API key not found. Please set NEXT_PUBLIC_AI_API_KEY in your environment variables.',
       }),
       {
         status: 500,
@@ -52,7 +52,7 @@ Your first message in a new chat MUST be: "💎 ProfitGen says: Hi, I’m Profit
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.LEMONFOX_API_KEY}`,
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_AI_API_KEY}`,
       },
       body: JSON.stringify({
         model: 'meta-llama/llama-3.3-70b-instruct',
