@@ -45,6 +45,7 @@ import {
 } from '@/components/ui/tooltip';
 import { courierRates } from '@/lib/courier-rates';
 import { AdBanner } from '@/components/ad-banner';
+import { useExchangeRate } from '@/hooks/use-exchange-rate';
 
 // Helper function to safely format numbers
 const formatNumber = (num: any, decimals = 0) => {
@@ -108,6 +109,8 @@ export default function FeasibilityPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [calculatedValues, setCalculatedValues] =
     useState<CalculatedValues>(null);
+  const { rate: usdToPkrRate, isLoading: isRateLoading } = useExchangeRate();
+  const [effectiveRate, setEffectiveRate] = useState<number | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -161,6 +164,18 @@ export default function FeasibilityPage() {
   const watchedShopifyPlan = watch('shopifyPlan');
   const watchedShopifyMonthlyCost = watch('shopifyMonthlyCost');
   const watchedPaymentType = watch('paymentType');
+  const watchedBank = watch('bank');
+  const watchedDebitCardTax = watch('debitCardTax');
+
+  useEffect(() => {
+    if (usdToPkrRate && watchedDebitCardTax !== undefined) {
+      const calculatedEffectiveRate = usdToPkrRate * (1 + watchedDebitCardTax / 100);
+      setEffectiveRate(calculatedEffectiveRate);
+    } else {
+      setEffectiveRate(null);
+    }
+  }, [usdToPkrRate, watchedDebitCardTax]);
+
 
   useEffect(() => {
     const toNum = (val: any): number => {
@@ -182,7 +197,7 @@ export default function FeasibilityPage() {
       return;
     }
 
-    const shopifyCostPkr = shopifyMonthlyCost * 300;
+    const shopifyCostPkr = shopifyMonthlyCost * (effectiveRate || 300);
     const totalMonthlyFixedCosts = shopifyCostPkr + adBudget;
     const fbrTaxRate = paymentType === 'COD' ? 0.02 : 0.01;
     const fbrTax = sellingPrice * fbrTaxRate;
@@ -249,6 +264,7 @@ export default function FeasibilityPage() {
     watchedShopifyPlan,
     watchedShopifyMonthlyCost,
     watchedPaymentType,
+    effectiveRate,
     form,
   ]);
 
@@ -268,7 +284,8 @@ export default function FeasibilityPage() {
   const handleBankChange = (bankName: string) => {
     const selectedBank = settings.banks.find((b) => b.name === bankName);
     if (selectedBank) {
-      setValue('debitCardTax', selectedBank.tax);
+      setValue('bank', selectedBank.name, { shouldValidate: true });
+      setValue('debitCardTax', selectedBank.tax, { shouldValidate: true });
     }
   };
 
@@ -548,41 +565,51 @@ export default function FeasibilityPage() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="bank"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Bank for Payments</FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            field.onChange(value);
-                            handleBankChange(value);
-                          }}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a bank" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {settings.banks.map((b) => (
-                              <SelectItem key={b.name} value={b.name}>
-                                {b.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                   <div className="col-span-1 sm:col-span-2 space-y-2">
+                    <FormField
+                        control={form.control}
+                        name="bank"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Bank for Payments</FormLabel>
+                            <Select
+                            onValueChange={(value) => handleBankChange(value)}
+                            value={field.value}
+                            >
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="Select a bank" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {settings.banks.map((b) => (
+                                <SelectItem key={b.name} value={b.name}>
+                                    {b.name}
+                                </SelectItem>
+                                ))}
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    {isRateLoading ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Fetching live exchange rate...</span>
+                        </div>
+                    ) : effectiveRate ? (
+                        <p className="text-sm text-muted-foreground">
+                        💰 <b>Effective USD Rate:</b> ₨{effectiveRate.toFixed(2)} (includes {watchedBank}'s {watchedDebitCardTax}% conversion fee)
+                        </p>
+                    ) : null}
+                    </div>
+
                   <FormField
                     control={form.control}
                     name="debitCardTax"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className='hidden'>
                         <FormLabel>Debit Card Tax (%)</FormLabel>
                         <FormControl>
                           <Input type="number" {...field} />
