@@ -37,7 +37,8 @@ export type FeasibilityCheck = BaseAnalysis & {
   courier: string;
   courierRate: number;
   adBudget: number;
-  costPerConversion: number;
+  adSpend?: number;
+  costPerConversion?: number;
   sellingPrice: number;
   sourcingCost: number;
 

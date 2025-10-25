@@ -94,7 +94,7 @@ const handleDownloadCsv = (record: LaunchPlan | FeasibilityCheck) => {
         csvContent += rows.join('\n');
     } else { // Feasibility
         const feasibilityRecord = record as FeasibilityCheck;
-        const headers = [...universalHeaders, "Shopify Plan", "Shopify Monthly Cost (USD)", "Bank", "Debit Card Tax (%)", "Ad Budget", "Cost Per Conversion", "Total Monthly Fixed Costs", "Breakeven Conversions", "Net Profit", "Break-even Price", "ROAS Multiplier", "ROAS Percent"];
+        const headers = [...universalHeaders, "Shopify Plan", "Shopify Monthly Cost (USD)", "Bank", "Debit Card Tax (%)", "Ad Budget", "Actual Ad Spend", "Cost Per Conversion", "Total Monthly Fixed Costs", "Breakeven Conversions", "Net Profit", "Break-even Price", "ROAS Multiplier", "ROAS Percent"];
         const rows = [
             headers.join(','),
             [
@@ -116,6 +116,7 @@ const handleDownloadCsv = (record: LaunchPlan | FeasibilityCheck) => {
                 feasibilityRecord.bank,
                 feasibilityRecord.debitCardTax,
                 feasibilityRecord.adBudget,
+                feasibilityRecord.adSpend || 0,
                 feasibilityRecord.costPerConversion,
                 feasibilityRecord.totalMonthlyFixedCosts,
                 feasibilityRecord.breakevenConversions,
@@ -182,6 +183,7 @@ const handleDownloadPdf = (record: LaunchPlan | FeasibilityCheck, toast: any) =>
             );
         } else {
             const r = record as FeasibilityCheck;
+            const roasLabel = r.adSpend && r.adSpend > 0 ? 'ROAS (Actual)' : 'ROAS (Estimated)';
             body.push(
                 ['Product Category', r.category],
                 ['Payment Type', r.paymentType],
@@ -190,7 +192,7 @@ const handleDownloadPdf = (record: LaunchPlan | FeasibilityCheck, toast: any) =>
                 ['Estimated Net Profit', `PKR ${r.netProfit.toLocaleString()}`],
                 ['Breakeven Conversions', r.breakevenConversions.toLocaleString()],
                 ['Break-even Price', `PKR ${r.breakEvenPrice.toLocaleString()}`],
-                ['ROAS', `${(r.roasMultiplier || 0).toFixed(2)}x (${(r.roasPercent || 0).toFixed(1)}%)`],
+                [roasLabel, `${(r.roasMultiplier || 0).toFixed(2)}x (${(r.roasPercent || 0).toFixed(1)}%)`],
                 [{content: 'Inputs', styles: {fontStyle: 'bold', fillColor: isDark ? [40,40,40] : [240,240,240]}}],
                 ['Sourcing Cost', `PKR ${r.sourcingCost.toLocaleString()}`],
                 ['Selling Price', `PKR ${r.sellingPrice.toLocaleString()}`],
@@ -198,7 +200,8 @@ const handleDownloadPdf = (record: LaunchPlan | FeasibilityCheck, toast: any) =>
                 ['Courier', r.courier],
                 ['Bank for Payments', `${r.bank} (${r.debitCardTax}%)`],
                 ['Monthly Ad Budget', `PKR ${r.adBudget.toLocaleString()}`],
-                ['Cost per Conversion', `PKR ${r.costPerConversion.toLocaleString()}`],
+                ['Actual Ad Spend', `PKR ${(r.adSpend || 0).toLocaleString()}`],
+                ['Cost per Conversion', `PKR ${r.costPerConversion?.toLocaleString() || 'N/A'}`],
                 ['Courier Rate', `PKR ${r.courierRate.toLocaleString()}`],
                 ['FBR Tax (per unit)', `PKR ${r.fbrTax.toLocaleString()}`],
             );
@@ -289,7 +292,7 @@ const FeasibilityResult = ({ record }: { record: FeasibilityCheck }) => (
         </Card>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <MetricCard label="Estimated Net Profit" value={record.netProfit} subtext="per month" />
-            <MetricCard label="Return on Ad Spend (ROAS)" value={`${(record.roasMultiplier || 0).toFixed(2)}x`} subtext={`(${(record.roasPercent || 0).toFixed(1)}%)`} />
+            <MetricCard label="Return on Ad Spend (ROAS)" value={`${(record.roasMultiplier || 0).toFixed(2)}x`} subtext={`${(record.adSpend && record.adSpend > 0) ? '(Actual)' : '(Estimated)'} (${(record.roasPercent || 0).toFixed(1)}%)`} />
             <MetricCard label="Breakeven Conversions" value={record.breakevenConversions} subtext="sales needed to break even per month" />
             <MetricCard label="Break-even Price" value={record.breakEvenPrice} subtext="to cover per-unit costs" />
         </div>
@@ -304,7 +307,8 @@ const FeasibilityResult = ({ record }: { record: FeasibilityCheck }) => (
                      <li className="flex justify-between py-2"><span className="text-muted-foreground">FBR Tax (per unit)</span><span>PKR {record.fbrTax.toLocaleString()}</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Bank</span><span>{record.bank} ({record.debitCardTax}%)</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Monthly Ad Budget</span><span>PKR {record.adBudget.toLocaleString()}</span></li>
-                    <li className="flex justify-between py-2"><span className="text-muted-foreground">Cost per Conversion</span><span>PKR {record.costPerConversion.toLocaleString()}</span></li>
+                    <li className="flex justify-between py-2"><span className="text-muted-foreground">Actual Ad Spend</span><span>PKR {(record.adSpend || 0).toLocaleString()}</span></li>
+                    <li className="flex justify-between py-2"><span className="text-muted-foreground">Cost per Conversion</span><span>PKR {(record.costPerConversion || 0).toLocaleString()}</span></li>
                      <li className="flex justify-between py-2"><span className="text-muted-foreground">Courier</span><span>{record.courier}</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Courier Rate</span><span>PKR {record.courierRate.toLocaleString()}</span></li>
                 </ul>

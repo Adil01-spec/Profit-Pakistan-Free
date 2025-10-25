@@ -50,7 +50,7 @@ import { format } from 'date-fns';
 
 // Helper function to safely format numbers
 const formatNumber = (num: any, decimals = 0) => {
-  const parsed = parseFloat(num);
+  const n = parseFloat(num);
   if (typeof parsed === 'number' && !isNaN(parsed)) {
     return parsed.toLocaleString('en-US', {
       minimumFractionDigits: decimals,
@@ -83,7 +83,8 @@ const formSchema = z
     courier: z.string().min(1),
     courierRate: z.coerce.number().min(0),
     adBudget: z.coerce.number().min(0),
-    costPerConversion: z.coerce.number().min(0),
+    adSpend: z.coerce.number().min(0).optional(),
+    costPerConversion: z.coerce.number().min(0).optional(),
     paymentType: z.enum(['COD', 'Online']),
   })
   .refine(
@@ -152,6 +153,7 @@ export default function FeasibilityPage() {
         courier: 'TCS',
         courierRate: courierRates.TCS.COD,
         adBudget: 0,
+        adSpend: 0,
         costPerConversion: 0,
         paymentType: 'COD',
     },
@@ -174,6 +176,7 @@ export default function FeasibilityPage() {
             courier: 'TCS',
             courierRate: courierRates.TCS.COD,
             adBudget: 0,
+            adSpend: 0,
             costPerConversion: 0,
             paymentType: 'COD',
         });
@@ -184,6 +187,7 @@ export default function FeasibilityPage() {
   const watchedSourcingCost = watch('sourcingCost');
   const watchedSellingPrice = watch('sellingPrice');
   const watchedAdBudget = watch('adBudget');
+  const watchedAdSpend = watch('adSpend');
   const watchedCostPerConversion = watch('costPerConversion');
   const watchedCourierRate = watch('courierRate');
   const watchedShopifyPlan = watch('shopifyPlan');
@@ -211,10 +215,10 @@ export default function FeasibilityPage() {
     const sourcingCost = toNum(watchedSourcingCost);
     const sellingPrice = toNum(watchedSellingPrice);
     const adBudget = toNum(watchedAdBudget);
+    const adSpend = toNum(watchedAdSpend);
     const costPerConversion = toNum(watchedCostPerConversion);
     const courierRate = toNum(watchedCourierRate);
-    const shopifyMonthlyCost =
-    watchedShopifyPlan === 'trial' ? 1 : toNum(watchedShopifyMonthlyCost);
+    const shopifyMonthlyCost = watchedShopifyPlan === 'trial' ? 1 : toNum(watchedShopifyMonthlyCost);
     const paymentType = watchedPaymentType;
     
     if (sellingPrice <= 0 || sellingPrice <= sourcingCost || !effectiveRate) {
@@ -232,22 +236,24 @@ export default function FeasibilityPage() {
         ? Math.ceil(totalMonthlyFixedCosts / profitPerSale)
         : 0;
 
-    const conversionsPerMonth =
-      adBudget > 0 && costPerConversion > 0 ? adBudget / costPerConversion : 0;
+    const conversionsPerMonth = costPerConversion > 0 ? adBudget / costPerConversion : 0;
     const totalRevenue = conversionsPerMonth * sellingPrice;
     const totalSourcingCost = conversionsPerMonth * sourcingCost;
     const totalCourierCost = conversionsPerMonth * courierRate;
     const totalFbrTax = conversionsPerMonth * fbrTax;
+    
+    const finalAdSpend = adSpend > 0 ? adSpend : adBudget;
 
     const netProfit =
       totalRevenue -
       totalSourcingCost -
       totalCourierCost -
-      totalMonthlyFixedCosts -
+      (shopifyCostPkr + finalAdSpend) -
       totalFbrTax;
 
     const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
-    const roasMultiplier = adBudget > 0 ? totalRevenue / adBudget : 0;
+    
+    const roasMultiplier = finalAdSpend > 0 ? totalRevenue / finalAdSpend : 0;
     const roasPercent = roasMultiplier * 100;
     
     let profitStatus: 'Profitable' | 'Near Breakeven' | 'Loss' = 'Loss';
@@ -258,7 +264,7 @@ export default function FeasibilityPage() {
         'en-US',
         { maximumFractionDigits: 0 }
       )}/month.`;
-    } else if (netProfit > -totalMonthlyFixedCosts * 0.2 && netProfit <= 0) {
+    } else if (netProfit > -(shopifyCostPkr + finalAdSpend) * 0.2 && netProfit <= 0) {
       profitStatus = 'Near Breakeven';
       summary = `You're close to breaking even. A small improvement in sales or costs could make you profitable.`;
     }
@@ -277,13 +283,14 @@ export default function FeasibilityPage() {
         profitMargin,
         roasMultiplier,
         roasPercent,
-        roas: 0,
+        roas: 0, // Keep for type compatibility, though roasMultiplier is used
     });
 
   }, [
     watchedSourcingCost,
     watchedSellingPrice,
     watchedAdBudget,
+    watchedAdSpend,
     watchedCostPerConversion,
     watchedCourierRate,
     watchedShopifyPlan,
@@ -656,34 +663,54 @@ export default function FeasibilityPage() {
                 </CardContent>
               </Card>
 
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="adBudget"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ad Budget (monthly)</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="costPerConversion"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cost per Conversion</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <Card className="bg-muted/30">
+                  <CardHeader>
+                    <CardTitle className="text-lg">
+                        Advertising & ROAS
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <FormField
+                    control={form.control}
+                    name="adBudget"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Ad Budget (monthly)</FormLabel>
+                        <FormControl>
+                            <Input type="number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="costPerConversion"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Cost per Conversion</FormLabel>
+                        <FormControl>
+                            <Input type="number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                    <FormField
+                    control={form.control}
+                    name="adSpend"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel>Actual Ad Spend (monthly)</FormLabel>
+                        <FormControl>
+                            <Input type="number" {...field} placeholder="Optional, for accurate ROAS"/>
+                        </FormControl>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </CardContent>
+              </Card>
 
               {calculatedValues && (
                 <div className="space-y-6 mt-6">
@@ -712,7 +739,7 @@ export default function FeasibilityPage() {
                       <CardHeader>
                         <CardTitle>Return on Ad Spend (ROAS)</CardTitle>
                         <CardDescription>
-                          Efficiency of ad performance
+                          {watchedAdSpend > 0 ? '(Actual)' : '(Estimated)'}
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
@@ -798,3 +825,5 @@ export default function FeasibilityPage() {
     </main>
   );
 }
+
+    
