@@ -86,6 +86,8 @@ const formSchema = z
     adSpend: z.coerce.number().min(0).optional(),
     costPerConversion: z.coerce.number().min(0).optional(),
     paymentType: z.enum(['COD', 'Online']),
+    adDurationDays: z.coerce.number().optional(),
+    totalRevenue: z.coerce.number().optional(),
   })
   .refine(
     (data) =>
@@ -101,7 +103,11 @@ const formSchema = z
     path: ['sellingPrice'],
   });
 
-type CalculatedValues = Omit<FeasibilityCheck, 'id' | 'date'> | null;
+type CalculatedValues = (Omit<FeasibilityCheck, 'id' | 'date'> & {
+    newRoasMultiplier?: number;
+    newRoasPercent?: number;
+    roasVerdict?: string;
+}) | null;
 
 function ManualRateInput({ onSetRate, lastSavedRate }: { onSetRate: (rate: number) => void; lastSavedRate?: number }) {
     const [manualRate, setManualRate] = useState(lastSavedRate || 280);
@@ -161,6 +167,8 @@ export default function FeasibilityPage() {
         adSpend: 0,
         costPerConversion: 0,
         paymentType: 'COD',
+        adDurationDays: undefined,
+        totalRevenue: undefined
     },
   });
 
@@ -184,6 +192,8 @@ export default function FeasibilityPage() {
             adSpend: 0,
             costPerConversion: 0,
             paymentType: 'COD',
+            adDurationDays: undefined,
+            totalRevenue: undefined
         });
     }
   }, [isPersistent, settings, reset]);
@@ -200,6 +210,8 @@ export default function FeasibilityPage() {
   const watchedPaymentType = watch('paymentType');
   const watchedBank = watch('bank');
   const watchedDebitCardTax = watch('debitCardTax');
+  const watchedAdDurationDays = watch('adDurationDays');
+  const watchedTotalRevenue = watch('totalRevenue');
 
   useEffect(() => {
     if (usdToPkrRate && watchedDebitCardTax !== undefined) {
@@ -275,6 +287,20 @@ export default function FeasibilityPage() {
     }
 
     const breakEvenPrice = sourcingCost + courierRate + fbrTax;
+    
+    // New ROAS Calculations
+    const adDuration = toNum(watchedAdDurationDays);
+    const revenueFromAds = toNum(watchedTotalRevenue);
+    let newRoasMultiplier, newRoasPercent, roasVerdict;
+
+    if (revenueFromAds > 0 && adSpend > 0) {
+        newRoasMultiplier = revenueFromAds / adSpend;
+        newRoasPercent = newRoasMultiplier * 100;
+        if (newRoasPercent >= 400) roasVerdict = 'Highly Feasible — Excellent performance.';
+        else if (newRoasPercent >= 200) roasVerdict = 'Feasible — Good, but optimize your ads.';
+        else roasVerdict = 'Not Feasible — Review ad strategy and creatives.';
+    }
+
 
     setCalculatedValues({
         ...(form.getValues()),
@@ -289,6 +315,9 @@ export default function FeasibilityPage() {
         roasMultiplier,
         roasPercent,
         roas: 0, // Keep for type compatibility, though roasMultiplier is used
+        newRoasMultiplier,
+        newRoasPercent,
+        roasVerdict,
     });
 
   }, [
@@ -302,6 +331,8 @@ export default function FeasibilityPage() {
     watchedShopifyMonthlyCost,
     watchedPaymentType,
     effectiveRate,
+    watchedAdDurationDays,
+    watchedTotalRevenue,
     form,
   ]);
 
@@ -714,6 +745,32 @@ export default function FeasibilityPage() {
                         </FormItem>
                     )}
                     />
+                     <FormField
+                        control={form.control}
+                        name="adDurationDays"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>How many days have you been running ads?</FormLabel>
+                            <FormControl>
+                                <Input type="number" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="totalRevenue"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Total revenue from these ads? (PKR)</FormLabel>
+                            <FormControl>
+                                <Input type="number" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
                 </CardContent>
               </Card>
 
@@ -809,6 +866,29 @@ export default function FeasibilityPage() {
                       </CardContent>
                     </Card>
                   </div>
+                   {calculatedValues.roasVerdict && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>📊 Ad Performance Analysis</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                             <div className="text-center">
+                                <p className="text-sm text-muted-foreground">ROAS Verdict</p>
+                                <p className="text-lg font-semibold">{calculatedValues.roasVerdict}</p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-center">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Calculated ROAS</p>
+                                    <p className="text-xl font-bold">{formatNumber(calculatedValues.newRoasMultiplier, 2)}x ({formatNumber(calculatedValues.newRoasPercent, 1)}%)</p>
+                                </div>
+                                 <div>
+                                    <p className="text-sm text-muted-foreground">Avg. Daily ROAS</p>
+                                    <p className="text-xl font-bold">{ (calculatedValues.newRoasMultiplier && calculatedValues.adDurationDays && calculatedValues.adDurationDays > 0) ? `${formatNumber(calculatedValues.newRoasMultiplier / calculatedValues.adDurationDays, 2)}x` : 'N/A'}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                  )}
                   <AdBanner />
                 </div>
               )}

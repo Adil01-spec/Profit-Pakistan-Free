@@ -41,6 +41,8 @@ export type FeasibilityCheck = BaseAnalysis & {
   costPerConversion?: number;
   sellingPrice: number;
   sourcingCost: number;
+  adDurationDays?: number;
+  totalRevenue?: number;
 
   // Calculated
   totalMonthlyFixedCosts: number;
