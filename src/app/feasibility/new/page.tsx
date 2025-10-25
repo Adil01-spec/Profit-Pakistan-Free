@@ -87,7 +87,6 @@ const formSchema = z
     costPerConversion: z.coerce.number().min(0).optional(),
     paymentType: z.enum(['COD', 'Online']),
     adDurationDays: z.coerce.number().optional(),
-    totalRevenue: z.coerce.number().optional(),
   })
   .refine(
     (data) =>
@@ -104,6 +103,7 @@ const formSchema = z
   });
 
 type CalculatedValues = (Omit<FeasibilityCheck, 'id' | 'date'> & {
+    estimatedAdRevenue?: number;
     newRoasMultiplier?: number;
     newRoasPercent?: number;
     roasVerdict?: string;
@@ -168,7 +168,6 @@ export default function FeasibilityPage() {
         costPerConversion: 0,
         paymentType: 'COD',
         adDurationDays: undefined,
-        totalRevenue: undefined
     },
   });
 
@@ -193,7 +192,6 @@ export default function FeasibilityPage() {
             costPerConversion: 0,
             paymentType: 'COD',
             adDurationDays: undefined,
-            totalRevenue: undefined
         });
     }
   }, [isPersistent, settings, reset]);
@@ -211,7 +209,6 @@ export default function FeasibilityPage() {
   const watchedBank = watch('bank');
   const watchedDebitCardTax = watch('debitCardTax');
   const watchedAdDurationDays = watch('adDurationDays');
-  const watchedTotalRevenue = watch('totalRevenue');
 
   useEffect(() => {
     if (usdToPkrRate && watchedDebitCardTax !== undefined) {
@@ -290,11 +287,13 @@ export default function FeasibilityPage() {
     
     // New ROAS Calculations
     const adDuration = toNum(watchedAdDurationDays);
-    const revenueFromAds = toNum(watchedTotalRevenue);
+    const expectedDailyOrders = costPerConversion > 0 ? (adBudget / 30) / costPerConversion : 0;
+    const estimatedAdRevenue = expectedDailyOrders * sellingPrice * adDuration;
+
     let newRoasMultiplier, newRoasPercent, roasVerdict;
 
-    if (revenueFromAds > 0 && adSpend > 0) {
-        newRoasMultiplier = revenueFromAds / adSpend;
+    if (estimatedAdRevenue > 0 && adSpend > 0) {
+        newRoasMultiplier = estimatedAdRevenue / adSpend;
         newRoasPercent = newRoasMultiplier * 100;
         if (newRoasPercent >= 400) roasVerdict = 'Highly Feasible — Excellent performance.';
         else if (newRoasPercent >= 200) roasVerdict = 'Feasible — Good, but optimize your ads.';
@@ -315,6 +314,7 @@ export default function FeasibilityPage() {
         roasMultiplier,
         roasPercent,
         roas: 0, // Keep for type compatibility, though roasMultiplier is used
+        estimatedAdRevenue,
         newRoasMultiplier,
         newRoasPercent,
         roasVerdict,
@@ -332,7 +332,6 @@ export default function FeasibilityPage() {
     watchedPaymentType,
     effectiveRate,
     watchedAdDurationDays,
-    watchedTotalRevenue,
     form,
   ]);
 
@@ -704,6 +703,9 @@ export default function FeasibilityPage() {
                     <CardTitle className="text-lg">
                         Advertising & ROAS
                     </CardTitle>
+                    <CardDescription>
+                      If you don’t know your total ad revenue, we’ll estimate it using your daily orders and ad duration.
+                    </CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <FormField
@@ -750,20 +752,7 @@ export default function FeasibilityPage() {
                         name="adDurationDays"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>How many days have you been running ads?</FormLabel>
-                            <FormControl>
-                                <Input type="number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="totalRevenue"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Total revenue from these ads? (PKR)</FormLabel>
+                            <FormLabel>Ad Duration (Days)</FormLabel>
                             <FormControl>
                                 <Input type="number" {...field} />
                             </FormControl>
@@ -878,12 +867,12 @@ export default function FeasibilityPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-4 text-center">
                                 <div>
+                                    <p className="text-sm text-muted-foreground">Estimated Ad Revenue</p>
+                                    <p className="text-xl font-bold">Rs. {formatNumber(calculatedValues.estimatedAdRevenue)}</p>
+                                </div>
+                                <div>
                                     <p className="text-sm text-muted-foreground">Calculated ROAS</p>
                                     <p className="text-xl font-bold">{formatNumber(calculatedValues.newRoasMultiplier, 2)}x ({formatNumber(calculatedValues.newRoasPercent, 1)}%)</p>
-                                </div>
-                                 <div>
-                                    <p className="text-sm text-muted-foreground">Avg. Daily ROAS</p>
-                                    <p className="text-xl font-bold">{ (calculatedValues.newRoasMultiplier && calculatedValues.adDurationDays && calculatedValues.adDurationDays > 0) ? `${formatNumber(calculatedValues.newRoasMultiplier / calculatedValues.adDurationDays, 2)}x` : 'N/A'}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -910,3 +899,5 @@ export default function FeasibilityPage() {
     </main>
   );
 }
+
+    

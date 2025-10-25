@@ -42,7 +42,6 @@ export type FeasibilityCheck = BaseAnalysis & {
   sellingPrice: number;
   sourcingCost: number;
   adDurationDays?: number;
-  totalRevenue?: number;
 
   // Calculated
   totalMonthlyFixedCosts: number;
@@ -72,5 +71,7 @@ export interface AppSettings {
     shopifyPlans: ShopifyPlan[];
     taxRate: number;
 }
+
+    
 
     
