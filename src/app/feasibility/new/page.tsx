@@ -84,7 +84,7 @@ const formSchema = z
     courierRate: z.coerce.number().min(0),
     adBudget: z.coerce.number().min(0),
     adSpend: z.coerce.number().min(0).optional(),
-    costPerConversion: z.coerce.number().min(0).optional(),
+    costPerConversion: z.coerce.number().optional(),
     paymentType: z.enum(['COD', 'Online']),
     adDurationDays: z.coerce.number().optional(),
   })
@@ -165,9 +165,9 @@ export default function FeasibilityPage() {
         courierRate: courierRates.TCS.COD,
         adBudget: 0,
         adSpend: 0,
-        costPerConversion: 0,
+        costPerConversion: '' as any, // Use empty string for controlled input
         paymentType: 'COD',
-        adDurationDays: undefined,
+        adDurationDays: '' as any, // Use empty string for controlled input
     },
   });
 
@@ -189,9 +189,9 @@ export default function FeasibilityPage() {
             courierRate: courierRates.TCS.COD,
             adBudget: 0,
             adSpend: 0,
-            costPerConversion: 0,
+            costPerConversion: '' as any,
             paymentType: 'COD',
-            adDurationDays: undefined,
+            adDurationDays: '' as any,
         });
     }
   }, [isPersistent, settings, reset]);
@@ -899,5 +899,7 @@ export default function FeasibilityPage() {
     </main>
   );
 }
+
+    
 
     
