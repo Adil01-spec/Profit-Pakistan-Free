@@ -51,8 +51,8 @@ import { format } from 'date-fns';
 // Helper function to safely format numbers
 const formatNumber = (num: any, decimals = 0) => {
   const n = parseFloat(num);
-  if (typeof parsed === 'number' && !isNaN(parsed)) {
-    return parsed.toLocaleString('en-US', {
+  if (typeof n === 'number' && !isNaN(n)) {
+    return n.toLocaleString('en-US', {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
     });
@@ -137,6 +137,11 @@ export default function FeasibilityPage() {
     useState<CalculatedValues>(null);
   const { rate: usdToPkrRate, isLoading: isRateLoading, lastUpdated, showManualInput, setManualRate, lastSavedRate } = useExchangeRate();
   const [effectiveRate, setEffectiveRate] = useState<number | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -370,7 +375,7 @@ export default function FeasibilityPage() {
     }
   }
   
-  if (!isPersistent) {
+  if (!isPersistent || !isClient) {
     return (
         <div className="flex min-h-screen flex-col">
             <div className="flex flex-1 items-center justify-center">
@@ -825,5 +830,3 @@ export default function FeasibilityPage() {
     </main>
   );
 }
-
-    
