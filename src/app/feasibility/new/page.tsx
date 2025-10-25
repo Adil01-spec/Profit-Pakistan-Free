@@ -662,22 +662,22 @@ export default function FeasibilityPage() {
                         </FormItem>
                         )}
                     />
-                    {isRateLoading ? (
+                    {isClient && isRateLoading ? (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Loader2 className="h-4 w-4 animate-spin" />
                             <span>Fetching live exchange rate...</span>
                         </div>
-                    ) : effectiveRate ? (
+                    ) : isClient && effectiveRate ? (
                         <p className="text-sm text-muted-foreground">
                         💰 <b>Effective USD Rate:</b> ₨{effectiveRate.toFixed(2)} (includes {watchedBank}'s {watchedDebitCardTax}% conversion fee)
                         </p>
                     ) : null}
 
-                     {showManualInput && (
+                     {isClient && showManualInput && (
                         <ManualRateInput onSetRate={setManualRate} lastSavedRate={lastSavedRate} />
                     )}
 
-                    {lastUpdated && (
+                    {isClient && lastUpdated && (
                         <p className="text-xs text-gray-500">💱 Last updated: {format(new Date(lastUpdated), "dd MMM yyyy, h:mm a")}</p>
                     )}
 
