@@ -49,7 +49,6 @@ export type FeasibilityCheck = BaseAnalysis & {
   netProfit: number;
   breakEvenPrice: number;
   profitMargin: number;
-  roas: number;
   roasMultiplier: number;
   roasPercent: number;
 };

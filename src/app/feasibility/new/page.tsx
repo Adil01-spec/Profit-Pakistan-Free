@@ -232,7 +232,7 @@ export default function FeasibilityPage() {
     const adSpend = toNum(watchedAdSpend);
     const costPerConversion = toNum(watchedCostPerConversion);
     const courierRate = toNum(watchedCourierRate);
-    const shopifyMonthlyCost = watchedShopifyPlan === 'trial' ? 1 : toNum(watchedShopifyMonthlyCost);
+    const shopifyMonthlyCost = toNum(watchedShopifyMonthlyCost);
     const paymentType = watchedPaymentType;
     
     if (sellingPrice <= 0 || sellingPrice <= sourcingCost || !effectiveRate) {
@@ -240,7 +240,7 @@ export default function FeasibilityPage() {
       return;
     }
 
-    const shopifyCostPkr = shopifyMonthlyCost * effectiveRate;
+    const shopifyCostPkr = watchedShopifyPlan === 'regular' ? shopifyMonthlyCost * effectiveRate : 0;
     const totalMonthlyFixedCosts = shopifyCostPkr + adBudget;
     const fbrTaxRate = paymentType === 'COD' ? 0.02 : 0.01;
     const fbrTax = sellingPrice * fbrTaxRate;
@@ -313,7 +313,6 @@ export default function FeasibilityPage() {
         profitMargin,
         roasMultiplier,
         roasPercent,
-        roas: 0, // Keep for type compatibility, though roasMultiplier is used
         estimatedAdRevenue,
         newRoasMultiplier,
         newRoasPercent,
@@ -503,7 +502,7 @@ export default function FeasibilityPage() {
                             <RadioGroupItem value="trial" />
                           </FormControl>
                           <FormLabel className="font-normal">
-                            "$1 for 3-month trial"
+                            3-month trial
                           </FormLabel>
                         </FormItem>
                         <FormItem className="flex items-center space-x-2">
@@ -899,7 +898,3 @@ export default function FeasibilityPage() {
     </main>
   );
 }
-
-    
-
-    
