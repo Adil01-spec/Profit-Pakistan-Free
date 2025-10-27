@@ -3,11 +3,16 @@
 
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Loader2 } from "lucide-react"
 import Link from 'next/link';
+import { createSafepaySession } from "@/app/actions/safepay";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function UpgradePage() {
   const router = useRouter();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const plans = [
     {
@@ -30,7 +35,7 @@ export default function UpgradePage() {
     },
     {
       name: "Pro Plan",
-      price: "₨ 799 /month",
+      price: "₨ 599 /month",
       highlight: "Unlock full AI + business insights at low cost.",
       features: [
         "Full access to all premium features.",
@@ -42,12 +47,33 @@ export default function UpgradePage() {
         "Fast responses, longer chat memory, and personalized insights.",
         "Priority support and early access to new tools.",
       ],
-      buttonText: "Upgrade to Pro",
+      buttonText: "Proceed to Payment",
+      disabled: false,
       border: "border-yellow-400 dark:border-yellow-500 shadow-yellow-500/20",
       bg: "bg-yellow-50 dark:bg-yellow-950/40",
       text: "text-yellow-800 dark:text-yellow-200"
     }
   ];
+
+  const handleUpgrade = async () => {
+    setIsLoading(true);
+    try {
+      const result = await createSafepaySession(599);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      if (result.redirectUrl) {
+        router.push(result.redirectUrl);
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "⚠️ Payment Error",
+        description: error.message || "Could not initiate payment. Please try again.",
+      });
+      setIsLoading(false);
+    }
+  };
 
   function UpgradeHeader() {
     return (
@@ -90,17 +116,17 @@ export default function UpgradePage() {
             <Button
               onClick={() => {
                 if (!plan.disabled) {
-                  alert(`✅ You selected ${plan.name}. Payment flow coming soon!`);
-                  router.push('/');
+                  handleUpgrade();
                 }
               }}
-              disabled={plan.disabled}
+              disabled={plan.disabled || isLoading}
               className={`w-full mt-4 py-3 rounded-xl font-medium transition-colors ${
                 plan.disabled
                   ? 'bg-muted text-muted-foreground cursor-not-allowed'
                   : 'bg-yellow-500 hover:bg-yellow-600 text-white dark:bg-yellow-400 dark:hover:bg-yellow-300 dark:text-black'
               }`}
             >
+              {isLoading && !plan.disabled && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {plan.buttonText}
             </Button>
           </div>
@@ -108,7 +134,7 @@ export default function UpgradePage() {
       </div>
 
       <p className="text-xs text-center text-muted-foreground mt-8">
-        *Payments are processed securely. You’ll receive confirmation via email after successful activation.
+        *Payments are processed securely via Safepay. You’ll receive confirmation via email after successful activation.
       </p>
     </div>
   );
