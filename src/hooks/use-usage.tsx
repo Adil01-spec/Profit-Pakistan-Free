@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react';
 import { useLocalStorage } from 'usehooks-ts';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth, useFirestore, useUser } from '@/firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
@@ -42,8 +42,10 @@ const initialUsageState: UsageState = {
 
 export function UsageProvider({ children }: { children: ReactNode }) {
   const auth = useAuth();
+  const { user, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
-  const [userId, setUserId] = useLocalStorage<string | null>('device_id', null);
+  const [localDeviceId, setLocalDeviceId] = useLocalStorage<string | null>('device_id', null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [usageState, setUsageState] = useState<UsageState>(initialUsageState);
   const [isUsageLoading, setIsUsageLoading] = useState(true);
 
@@ -54,23 +56,33 @@ export function UsageProvider({ children }: { children: ReactNode }) {
   
   // Effect for authenticating and fetching/creating usage data
   useEffect(() => {
-    const handleAuth = async () => {
-      if (auth.currentUser) {
-        setUserId(auth.currentUser.uid);
-        return auth.currentUser.uid;
-      }
-      
-      try {
-        const userCredential = await signInAnonymously(auth);
-        setUserId(userCredential.user.uid);
-        return userCredential.user.uid;
-      } catch (error) {
-        console.error("Anonymous sign-in failed", error);
-        // Fallback to a temporary device ID if auth fails
-        const tempId = userId || uuidv4();
-        if (!userId) setUserId(tempId);
-        return tempId;
-      }
+    if (isAuthLoading || !auth) return;
+
+    const handleAuthAndSync = async () => {
+        let currentUid: string | null = null;
+        
+        if (user) {
+            currentUid = user.uid;
+            setUserId(currentUid);
+        } else {
+            try {
+                const userCredential = await signInAnonymously(auth);
+                currentUid = userCredential.user.uid;
+                setUserId(currentUid);
+            } catch (error) {
+                console.error("Anonymous sign-in failed", error);
+                const tempId = localDeviceId || uuidv4();
+                if (!localDeviceId) setLocalDeviceId(tempId);
+                currentUid = tempId;
+                setUserId(currentUid);
+            }
+        }
+        
+        if (currentUid) {
+            await syncUsage(currentUid);
+        } else {
+            setIsUsageLoading(false);
+        }
     };
 
     const syncUsage = async (uid: string) => {
@@ -97,7 +109,7 @@ export function UsageProvider({ children }: { children: ReactNode }) {
                 exportsUsed: 0, 
                 aiPromptsUsed: 0,
                 lastReset: serverTimestamp() 
-            });
+            }, { merge: true });
           } else {
             // Still within 24h window
             setUsageState({
@@ -125,11 +137,9 @@ export function UsageProvider({ children }: { children: ReactNode }) {
       }
     };
     
-    handleAuth().then(uid => {
-        if(uid) syncUsage(uid);
-    });
+    handleAuthAndSync();
 
-  }, [auth, firestore, setUserId]);
+  }, [isAuthLoading, user, auth, firestore, getUsageDocRef, localDeviceId, setLocalDeviceId]);
 
 
   const updateUsageInFirestore = async (feature: Feature, newUsedCount: number) => {
@@ -172,7 +182,7 @@ export function UsageProvider({ children }: { children: ReactNode }) {
 
   const value = {
     usageState,
-    isUsageLoading,
+    isUsageLoading: isUsageLoading || isAuthLoading,
     canUseFeature,
     recordFeatureUsage,
     grantUsage,

@@ -137,7 +137,8 @@
   },
   "auth": {
     "providers": [
-      "anonymous"
+      "anonymous",
+      "email"
     ]
   },
   "firestore": {
