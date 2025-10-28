@@ -63,7 +63,10 @@ export default function UpgradePage() {
         throw new Error(result.error);
       }
       if (result.redirectUrl) {
+        // Redirect the user to the Safepay checkout page
         router.push(result.redirectUrl);
+      } else {
+        throw new Error("Could not get checkout URL.");
       }
     } catch (error: any) {
       toast({
@@ -127,7 +130,7 @@ export default function UpgradePage() {
               }`}
             >
               {isLoading && !plan.disabled && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {plan.buttonText}
+              {isLoading && !plan.disabled ? 'Redirecting...' : plan.buttonText}
             </Button>
           </div>
         ))}

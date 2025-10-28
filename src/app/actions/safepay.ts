@@ -9,12 +9,13 @@ const getApiUrl = () => {
 };
 
 export async function createSafepaySession(amount: number) {
-    const apiKey = process.env.NEXT_PUBLIC_SAFEPAY_API_KEY;
+    const apiKey = process.env.SAFEPAY_API_KEY;
     const successUrl = process.env.NEXT_PUBLIC_SUCCESS_URL;
     const cancelUrl = process.env.NEXT_PUBLIC_CANCEL_URL;
     
     if (!apiKey || !successUrl || !cancelUrl) {
-        return { error: 'Safepay environment variables are not configured.' };
+        console.error('Safepay environment variables are not configured correctly.');
+        return { error: 'Payment system is not configured. Please contact support.' };
     }
 
     const apiUrl = getApiUrl();
@@ -39,6 +40,10 @@ export async function createSafepaySession(amount: number) {
         if (!response.ok) {
             console.error('Safepay API Error:', data);
             throw new Error(data.error?.message || 'Failed to create payment session.');
+        }
+        
+        if (!data.data?.url) {
+             throw new Error('No redirect URL received from Safepay.');
         }
 
         return { redirectUrl: data.data.url };
