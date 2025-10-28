@@ -1,9 +1,6 @@
 
 'use server';
 
-import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
-
 const getApiUrl = () => {
     const mode = process.env.NEXT_PUBLIC_SAFEPAY_MODE;
     return mode === 'sandbox'
@@ -30,7 +27,7 @@ export async function createSafepaySession(amount: number) {
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                amount: amount * 100, // Safepay expects amount in cents
+                amount: amount, 
                 currency: 'PKR',
                 success_url: successUrl,
                 cancel_url: cancelUrl,

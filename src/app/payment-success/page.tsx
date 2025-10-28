@@ -37,6 +37,7 @@ function PaymentSuccessContent() {
           description: 'Your payment has been verified. Welcome to Pro!',
         });
         
+        // Redirect to signup page with email pre-filled
         setTimeout(() => {
           router.push(`/signup?email=${encodeURIComponent(result.email!)}`);
         }, 3000);

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -29,6 +29,7 @@ import {
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Logo } from '@/components/logo';
+import { Suspense } from 'react';
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: 'Full name must be at least 2 characters.' }),
@@ -39,7 +40,7 @@ const formSchema = z.object({
 
 type SignUpFormValues = z.infer<typeof formSchema>;
 
-export default function SignUpPage() {
+function SignUpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -139,7 +140,7 @@ export default function SignUpPage() {
                   <FormItem>
                     <FormLabel>Email Address</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="email@example.com" {...field} />
+                      <Input type="email" placeholder="email@example.com" {...field} readOnly={!!searchParams.get('email')} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -181,4 +182,12 @@ export default function SignUpPage() {
       </Card>
     </div>
   );
+}
+
+export default function SignUpPage() {
+    return (
+        <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><Loader2 className="h-12 w-12 animate-spin" /></div>}>
+            <SignUpForm />
+        </Suspense>
+    )
 }
