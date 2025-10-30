@@ -1,24 +1,6 @@
+import { getLemonfoxKey } from "@/lib/ai-config";
 
-// Direct fetch to Lemonfox OpenAI-compatible endpoint
-export async function POST(req: Request) {
-  const { messages } = await req.json();
-
-  if (!process.env.NEXT_PUBLIC_AI_API_KEY) {
-    return new Response(
-      JSON.stringify({
-        error:
-          'API key not found. Please set NEXT_PUBLIC_AI_API_KEY in your environment variables.',
-      }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
-  }
-
-  const systemPrompt = {
-    role: 'system',
-    content: `You are ProfitGen, an expert AI assistant specializing in digital marketing and e-commerce for Pakistani entrepreneurs. Your goal is to provide actionable, data-driven advice to help users grow their online business.
+const systemPrompt = `You are ProfitGen, an expert AI assistant specializing in digital marketing and e-commerce for Pakistani entrepreneurs. Your goal is to provide actionable, data-driven advice to help users grow their online business.
 
 Your scope is strictly limited to:
 - Meta (Facebook, Instagram), Google, and TikTok advertising strategies.
@@ -45,44 +27,59 @@ Context Awareness:
 
 Your first message in a new chat MUST be: "💎 ProfitGen says: Hi, I’m ProfitGen — your smart marketing assistant. I’ll help you improve your ads, optimize Shopify sales, and increase profitability — all tailored for Pakistani entrepreneurs."
 `
-  };
 
+export async function POST(req: Request) {
   try {
-    const response = await fetch('https://api.lemonfox.ai/v1/chat/completions', {
-      method: 'POST',
+    const { messages } = await req.json();
+    const key = getLemonfoxKey();
+
+    // The user's prompt is the last message. Prepend the system prompt.
+    const messagesForApi = [
+        { role: "system", content: systemPrompt },
+        ...messages
+    ];
+
+    const response = await fetch("https://api.lemonfox.ai/v1/chat/completions", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_AI_API_KEY}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.3-70b-instruct',
-        messages: [systemPrompt, ...messages],
+        model: "meta-llama/Llama-3-70b-chat-hf",
+        messages: messagesForApi,
         temperature: 0.7,
         max_tokens: 700,
       }),
     });
-
-    if (!response.ok) {
-      const errorBody = await response.text();
-      console.error('Lemonfox API Error:', errorBody);
+    
+    if (response.status === 401 || response.status === 403) {
       return new Response(
         JSON.stringify({
-          error: `API request failed with status ${response.status}`,
+          error: "Invalid Lemonfox API key. Please verify your credentials.",
         }),
-        { status: response.status, headers: { 'Content-Type': 'application/json' } }
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    const completion = await response.json();
-    const reply = completion.choices[0]?.message?.content || 'No response.';
+    if (!response.ok) {
+      const text = await response.text();
+      console.error('Lemonfox API Error:', text);
+      throw new Error(`Lemonfox API error: ${response.statusText}`);
+    }
 
-    return new Response(JSON.stringify({ reply }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error('Request failed:', error);
+    const data = await response.json();
+    const reply = data.choices[0]?.message?.content || 'No response.';
+
+    return new Response(JSON.stringify({ reply }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    
+  } catch (err: any) {
+    console.error("AI route error:", err);
     return new Response(
-      JSON.stringify({ error: 'An unexpected error occurred.' }),
+      JSON.stringify({
+        error: "Lemonfox AI request failed.",
+        detail: err.message,
+      }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }

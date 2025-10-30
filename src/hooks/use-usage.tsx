@@ -1,7 +1,8 @@
+
 'use client';
 import { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react';
 import { useLocalStorage } from 'usehooks-ts';
-import { useAuth, useFirestore, useUser } from '@/firebase';
+import { useUser } from '@/firebase';
 import { doc, getDoc, setDoc, serverTimestamp, Firestore, Auth } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
@@ -42,12 +43,12 @@ const initialUsageState: UsageState = {
 
 interface UsageProviderProps {
     children: ReactNode;
+    auth: Auth;
+    firestore: Firestore;
 }
 
-export function UsageProvider({ children }: UsageProviderProps) {
+export function UsageProvider({ children, auth, firestore }: UsageProviderProps) {
   const { user, isUserLoading: isAuthLoading } = useUser();
-  const auth = useAuth();
-  const firestore = useFirestore();
   const [localDeviceId, setLocalDeviceId] = useLocalStorage<string | null>('device_id', null);
   const [userId, setUserId] = useState<string | null>(null);
   const [usageState, setUsageState] = useState<UsageState>(initialUsageState);

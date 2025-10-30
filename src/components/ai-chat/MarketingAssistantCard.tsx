@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
@@ -67,24 +66,27 @@ export function MarketingAssistantCard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ messages: newMessagesForApi.slice(1) }), // Exclude initial prompt
+        // Send the message history for context
+        body: JSON.stringify({ messages: newMessagesForApi.slice(1) }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('API error');
+        throw new Error(data.detail || data.error || 'API error');
       }
       
-      const data = await response.json();
       const aiMessage: Message = { role: 'assistant', content: data.reply };
       setMessages((prev) => [...prev, aiMessage]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('API Error:', error);
       toast({
         variant: 'destructive',
         title: '⚠️ Something went wrong.',
-        description: 'Please try again later.',
+        description: error.message || 'Please try again later.',
       });
-      setMessages(prev => prev.slice(0, -1)); // Rollback the user message
+      // Rollback the user message on error
+      setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
     }

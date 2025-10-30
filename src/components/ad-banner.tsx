@@ -21,12 +21,13 @@ export function AdBanner() {
         if (fetchedAds.length > 0) {
           setAds(fetchedAds);
         } else {
+          // Fallback to local JSON if Firestore is empty or fails
           const res = await fetch("/ads.json");
           const fallbackAds = await res.json();
           setAds(fallbackAds);
         }
       } catch (err) {
-        console.error("Ad load failed, using fallback:", err);
+        console.error("Ad load from Firestore failed, using fallback:", err);
         try {
           const res = await fetch("/ads.json");
           const fallbackAds = await res.json();
@@ -36,7 +37,11 @@ export function AdBanner() {
         }
       }
     };
-    fetchAds();
+    
+    // Only run on the client
+    if (typeof window !== "undefined") {
+      fetchAds();
+    }
   }, [firestore]);
 
   useEffect(() => {

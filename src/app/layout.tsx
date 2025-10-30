@@ -8,10 +8,8 @@ import { SettingsProvider } from '@/hooks/use-settings';
 import { HistoryProvider } from '@/hooks/use-history';
 import Script from 'next/script';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
-import { UsageProvider } from '@/hooks/use-usage';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { initializeFirebase } from '@/firebase';
 
 export const metadata: Metadata = {
   title: 'Profit Pakistan (Free)',
@@ -35,12 +33,10 @@ export default function RootLayout({
           <FirebaseClientProvider>
             <SettingsProvider>
               <HistoryProvider>
-                <UsageProvider>
-                    <Header />
-                    <main className="flex-grow">{children}</main>
-                    <Toaster />
-                    <Footer />
-                </UsageProvider>
+                <Header />
+                <main className="flex-grow">{children}</main>
+                <Toaster />
+                <Footer />
               </HistoryProvider>
             </SettingsProvider>
           </FirebaseClientProvider>
