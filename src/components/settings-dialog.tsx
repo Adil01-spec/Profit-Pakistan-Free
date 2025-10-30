@@ -1,3 +1,4 @@
+
 'use client'
 
 import {
@@ -17,6 +18,7 @@ import { useToast } from "@/hooks/use-toast"
 import { defaultBanks } from "@/lib/banks"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
+import { Switch } from "./ui/switch"
 import { ChangeEvent, useRef } from "react"
 import type { HistoryRecord } from "@/lib/types"
 
@@ -121,6 +123,47 @@ export function SettingsDialog() {
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="space-y-2">
+                        <Label>Tax Settings</Label>
+                        <div className="flex items-center justify-between rounded-lg border p-3">
+                            <Label htmlFor="filer-status" className="flex flex-col space-y-1">
+                                <span>Filer Status</span>
+                                <span className="font-normal leading-snug text-muted-foreground">
+                                    Are you an active taxpayer (filer)?
+                                </span>
+                            </Label>
+                            <Switch
+                                id="filer-status"
+                                checked={settings.isFiler}
+                                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, isFiler: checked }))}
+                            />
+                        </div>
+                        <div className="flex items-center justify-between rounded-lg border p-3">
+                            <Label htmlFor="provincial-tax" className="flex flex-col space-y-1">
+                                <span>Provincial Sales Tax</span>
+                                 <span className="font-normal leading-snug text-muted-foreground">
+                                    Enable provincial sales tax on services.
+                                </span>
+                            </Label>
+                            <Switch
+                                id="provincial-tax"
+                                checked={settings.provincialTaxEnabled}
+                                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, provincialTaxEnabled: checked }))}
+                            />
+                        </div>
+                        {settings.provincialTaxEnabled && (
+                             <div className="grid w-full max-w-sm items-center gap-1.5 p-3">
+                                <Label htmlFor="provincial-tax-rate">Provincial Tax Rate (%)</Label>
+                                <Input
+                                    type="number"
+                                    id="provincial-tax-rate"
+                                    value={settings.provincialTaxRate}
+                                    onChange={(e) => setSettings(prev => ({...prev, provincialTaxRate: parseFloat(e.target.value) || 0}))}
+                                    placeholder="e.g., 16"
+                                />
+                            </div>
+                        )}
+                    </div>
+                    <div className="space-y-2">
                         <Label>Data Management</Label>
                         <div className="grid grid-cols-2 gap-2">
                              <Button onClick={handleExport} variant="outline"><Download className="mr-2 h-4 w-4" /> Export Data</Button>
@@ -141,3 +184,5 @@ export function SettingsDialog() {
         </Dialog>
     )
 }
+
+    

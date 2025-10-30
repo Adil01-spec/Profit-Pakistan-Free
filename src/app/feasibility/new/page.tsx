@@ -211,13 +211,20 @@ export default function FeasibilityPage() {
   const watchedAdDurationDays = watch('adDurationDays');
 
   useEffect(() => {
-    if (usdToPkrRate && watchedDebitCardTax !== undefined) {
-      const calculatedEffectiveRate = usdToPkrRate * (1 + watchedDebitCardTax / 100);
+    if (usdToPkrRate && watchedDebitCardTax !== undefined && settings) {
+      // Pakistan-specific international transaction taxes applied here
+      const bankFee = watchedDebitCardTax / 100;
+      const wht = settings.isFiler ? 0.01 : 0.04;
+      const fedImpact = 0.16 * 0.25; // 25% realistic pass-through
+      const provincialTax = settings.provincialTaxEnabled ? settings.provincialTaxRate / 100 : 0;
+      const totalTaxRate = bankFee + wht + fedImpact + provincialTax;
+
+      const calculatedEffectiveRate = usdToPkrRate * (1 + totalTaxRate);
       setEffectiveRate(calculatedEffectiveRate);
     } else {
       setEffectiveRate(null);
     }
-  }, [usdToPkrRate, watchedDebitCardTax]);
+  }, [usdToPkrRate, watchedDebitCardTax, settings]);
 
 
   useEffect(() => {
@@ -235,13 +242,23 @@ export default function FeasibilityPage() {
     const shopifyMonthlyCost = toNum(watchedShopifyMonthlyCost);
     const paymentType = watchedPaymentType;
     
-    if (sellingPrice <= 0 || sellingPrice <= sourcingCost || !effectiveRate) {
+    if (sellingPrice <= 0 || sellingPrice <= sourcingCost || !effectiveRate || !settings) {
       setCalculatedValues(null);
       return;
     }
 
     const shopifyCostPkr = watchedShopifyPlan === 'regular' ? shopifyMonthlyCost * effectiveRate : 0;
-    const totalMonthlyFixedCosts = shopifyCostPkr + adBudget;
+    
+    // Apply international transaction taxes to ad budget
+    const bankFee = watchedDebitCardTax / 100;
+    const wht = settings.isFiler ? 0.01 : 0.04;
+    const fedImpact = 0.16 * 0.25;
+    const provincialTax = settings.provincialTaxEnabled ? settings.provincialTaxRate / 100 : 0;
+    const totalTaxRate = bankFee + wht + fedImpact + provincialTax;
+    const taxedAdBudget = adBudget * (1 + totalTaxRate);
+
+    const totalMonthlyFixedCosts = shopifyCostPkr + taxedAdBudget;
+
     const fbrTaxRate = paymentType === 'COD' ? 0.02 : 0.01;
     const fbrTax = sellingPrice * fbrTaxRate;
     const profitPerSale = sellingPrice - sourcingCost - courierRate - fbrTax;
@@ -256,7 +273,7 @@ export default function FeasibilityPage() {
     const totalCourierCost = conversionsPerMonth * courierRate;
     const totalFbrTax = conversionsPerMonth * fbrTax;
     
-    const finalAdSpend = adSpend > 0 ? adSpend : adBudget;
+    const finalAdSpend = adSpend > 0 ? adSpend * (1 + totalTaxRate) : taxedAdBudget;
 
     const netProfit =
       totalRevenue -
@@ -287,6 +304,7 @@ export default function FeasibilityPage() {
     
     // New ROAS Calculations
     const adDuration = toNum(watchedAdDurationDays);
+    // Note: this uses pre-tax ad budget for conversion calculation
     const expectedDailyOrders = costPerConversion > 0 ? (adBudget / 30) / costPerConversion : 0;
     const estimatedAdRevenue = expectedDailyOrders * sellingPrice * adDuration;
 
@@ -331,7 +349,9 @@ export default function FeasibilityPage() {
     watchedPaymentType,
     effectiveRate,
     watchedAdDurationDays,
+    watchedDebitCardTax,
     form,
+    settings
   ]);
 
 
@@ -404,7 +424,7 @@ export default function FeasibilityPage() {
     }
   }
   
-  if (!isPersistent || !isClient) {
+  if (!isPersistent || !isClient || !settings) {
     return (
         <div className="flex min-h-screen flex-col">
             <div className="flex flex-1 items-center justify-center">
@@ -667,7 +687,7 @@ export default function FeasibilityPage() {
                         </div>
                     ) : isClient && effectiveRate ? (
                         <p className="text-sm text-muted-foreground">
-                        💰 <b>Effective USD Rate:</b> ₨{effectiveRate.toFixed(2)} (includes {watchedBank}'s {watchedDebitCardTax}% conversion fee)
+                        💰 <b>Effective USD Rate:</b> ₨{effectiveRate.toFixed(2)} (includes international transaction taxes)
                         </p>
                     ) : null}
 
@@ -877,6 +897,9 @@ export default function FeasibilityPage() {
                         </CardContent>
                     </Card>
                   )}
+                  <p className="text-xs text-center text-muted-foreground pt-4">
+                    Includes estimated international transaction taxes applicable to Pakistani users (Bank Fee, WHT, and FED).
+                  </p>
                   <AdBanner />
                 </div>
               )}
@@ -898,3 +921,5 @@ export default function FeasibilityPage() {
     </main>
   );
 }
+
+    

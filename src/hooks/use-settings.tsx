@@ -12,6 +12,9 @@ const defaultSettings: AppSettings = {
     banks: defaultBanks,
     shopifyPlans: defaultShopifyPlans,
     taxRate: 5,
+    isFiler: true,
+    provincialTaxEnabled: false,
+    provincialTaxRate: 0,
 };
 
 export function SettingsProvider({ children }: { children: ReactNode }) {

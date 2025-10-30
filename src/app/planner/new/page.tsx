@@ -7,6 +7,7 @@ import * as z from 'zod';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useHistory } from '@/hooks/use-history';
+import { useSettings } from '@/hooks/use-settings';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -104,6 +105,7 @@ export default function PlannerPage() {
   const { addHistoryRecord } = useHistory();
   const [calculatedValues, setCalculatedValues] =
     useState<CalculatedValues>(null);
+  const [settings] = useSettings();
 
   const form = useForm<PlannerFormValues>({
     resolver: zodResolver(formSchema),
@@ -157,17 +159,25 @@ export default function PlannerPage() {
     const courierRate = toNum(watchedCourierRate);
     const paymentType = watchedPaymentType;
     
-    if (sellingPrice <= 0 || sellingPrice <= sourcingCost) {
+    if (sellingPrice <= 0 || sellingPrice <= sourcingCost || !settings) {
         setCalculatedValues(null);
         return;
     }
+    
+    // Apply international transaction taxes to marketing budget
+    const bankFee = settings.banks.find(b => b.name === 'Sadapay')?.tax / 100 || 0.04; // Default bank fee
+    const wht = settings.isFiler ? 0.01 : 0.04;
+    const fedImpact = 0.16 * 0.25; // 25% realistic pass-through
+    const provincialTax = settings.provincialTaxEnabled ? settings.provincialTaxRate / 100 : 0;
+    const totalTaxRate = bankFee + wht + fedImpact + provincialTax;
+    const taxedMarketingBudget = marketingBudget * (1 + totalTaxRate);
 
     const fbrTaxRate = paymentType === 'COD' ? 0.02 : 0.01;
     const fbrTax = sellingPrice * fbrTaxRate;
     const profitPerUnit = sellingPrice - sourcingCost - courierRate - fbrTax;
     const breakevenUnits =
-      marketingBudget > 0 && profitPerUnit > 0
-        ? Math.ceil(marketingBudget / profitPerUnit)
+      taxedMarketingBudget > 0 && profitPerUnit > 0
+        ? Math.ceil(taxedMarketingBudget / profitPerUnit)
         : 0;
     const profitMargin =
       sellingPrice > 0 ? (profitPerUnit / sellingPrice) * 100 : 0;
@@ -204,6 +214,7 @@ export default function PlannerPage() {
     watchedCourierRate,
     watchedPaymentType,
     form,
+    settings,
   ]);
 
 
@@ -403,7 +414,7 @@ export default function PlannerPage() {
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a courier" />
-                            </SelectTrigger>
+                            </Trigger>
                           </FormControl>
                           <SelectContent>
                             {Object.keys(courierRates).map((courierName) => (
@@ -440,7 +451,15 @@ export default function PlannerPage() {
                 </CardContent>
               </Card>
 
-              {calculatedValues && <PlannerResults results={calculatedValues} />}
+              {calculatedValues && (
+                <>
+                    <PlannerResults results={calculatedValues} />
+                    <p className="text-xs text-center text-muted-foreground pt-4">
+                      Includes estimated international transaction taxes applicable to Pakistani users (Bank Fee, WHT, and FED).
+                    </p>
+                </>
+              )}
+
 
               <Button type="submit" className="w-full" disabled={isSaving}>
                 {isSaving && (
@@ -455,3 +474,5 @@ export default function PlannerPage() {
     </main>
   );
 }
+
+    

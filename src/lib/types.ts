@@ -69,8 +69,9 @@ export interface AppSettings {
     banks: Bank[];
     shopifyPlans: ShopifyPlan[];
     taxRate: number;
+    isFiler: boolean;
+    provincialTaxEnabled: boolean;
+    provincialTaxRate: number;
 }
-
-    
 
     
