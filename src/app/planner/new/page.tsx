@@ -437,20 +437,18 @@ export default function PlannerPage() {
                           defaultValue={field.value}
                         >
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a courier" />
-                            </Trigger>
-                          </FormControl>
-                          <SelectContent>
-                            {Object.keys(courierRates).map((courierName) => (
-                              <SelectItem
-                                key={courierName}
-                                value={courierName}
-                              >
-                                {courierName}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
+  <SelectTrigger>
+    <SelectValue placeholder="Select a courier" />
+  </SelectTrigger>
+</FormControl>
+
+<SelectContent>
+  {Object.keys(courierRates).map((courierName) => (
+    <SelectItem key={courierName} value={courierName}>
+      {courierName}
+    </SelectItem>
+  ))}
+</SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>

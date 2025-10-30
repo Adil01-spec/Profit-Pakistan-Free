@@ -11,6 +11,7 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { UsageProvider } from '@/hooks/use-usage';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { initializeFirebase } from '@/firebase';
 
 export const metadata: Metadata = {
   title: 'Profit Pakistan (Free)',

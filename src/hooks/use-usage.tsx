@@ -2,7 +2,7 @@
 import { createContext, useContext, ReactNode, useState, useEffect, useCallback } from 'react';
 import { useLocalStorage } from 'usehooks-ts';
 import { useAuth, useFirestore, useUser } from '@/firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, Firestore, Auth } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -40,9 +40,13 @@ const initialUsageState: UsageState = {
   lastReset: Date.now(),
 };
 
-export function UsageProvider({ children }: { children: ReactNode }) {
-  const auth = useAuth();
+interface UsageProviderProps {
+    children: ReactNode;
+}
+
+export function UsageProvider({ children }: UsageProviderProps) {
   const { user, isUserLoading: isAuthLoading } = useUser();
+  const auth = useAuth();
   const firestore = useFirestore();
   const [localDeviceId, setLocalDeviceId] = useLocalStorage<string | null>('device_id', null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -63,6 +67,9 @@ export function UsageProvider({ children }: { children: ReactNode }) {
         
         if (user) {
             currentUid = user.uid;
+            setUserId(currentUid);
+        } else if (auth.currentUser) {
+            currentUid = auth.currentUser.uid;
             setUserId(currentUid);
         } else {
             try {
