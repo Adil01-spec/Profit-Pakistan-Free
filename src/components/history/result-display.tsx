@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useUsage } from "@/hooks/use-usage";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { TaxBreakdown } from "../tax-breakdown";
 
 
 // Extend the jsPDF interface to include autoTable
@@ -256,6 +257,9 @@ const LaunchResult = ({ record }: { record: LaunchPlan }) => (
             <MetricCard label="Breakeven ROAS" value={`1:${record.breakevenROAS.toFixed(2)}`} subtext="Sell Price / Profit per Unit"/>
             <MetricCard label="Breakeven Units" value={record.breakevenUnits} subtext="To cover monthly marketing budget" />
         </div>
+        
+        {record.taxDetails && <TaxBreakdown details={record.taxDetails} />}
+
         <Card>
             <CardHeader><CardTitle className="text-lg">Inputs</CardTitle></CardHeader>
             <CardContent>
@@ -296,6 +300,9 @@ const FeasibilityResult = ({ record }: { record: FeasibilityCheck }) => (
             <MetricCard label="Breakeven Conversions" value={record.breakevenConversions} subtext="sales needed to break even per month" />
             <MetricCard label="Break-even Price" value={record.breakEvenPrice} subtext="to cover per-unit costs" />
         </div>
+
+        {record.taxDetails && <TaxBreakdown details={record.taxDetails} />}
+
         <Card>
             <CardHeader><CardTitle className="text-lg">Inputs</CardTitle></CardHeader>
             <CardContent>

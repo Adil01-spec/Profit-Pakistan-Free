@@ -26,7 +26,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Loader2, Info } from 'lucide-react';
-import type { LaunchPlan } from '@/lib/types';
+import type { LaunchPlan, TaxDetails } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { PlannerResults } from '@/components/planner/planner-results';
@@ -44,6 +44,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { courierRates } from '@/lib/courier-rates';
+import { TaxBreakdown } from '@/components/tax-breakdown';
 
 // Helper function to safely format numbers
 const formatNumber = (num: any, decimals = 0) => {
@@ -106,6 +107,7 @@ export default function PlannerPage() {
   const [calculatedValues, setCalculatedValues] =
     useState<CalculatedValues>(null);
   const [settings] = useSettings();
+  const [taxDetails, setTaxDetails] = useState<TaxDetails | null>(null);
 
   const form = useForm<PlannerFormValues>({
     resolver: zodResolver(formSchema),
@@ -161,16 +163,37 @@ export default function PlannerPage() {
     
     if (sellingPrice <= 0 || sellingPrice <= sourcingCost || !settings) {
         setCalculatedValues(null);
+        setTaxDetails(null);
         return;
     }
-    
-    // Apply international transaction taxes to marketing budget
-    const bankFee = settings.banks.find(b => b.name === 'Sadapay')?.tax / 100 || 0.04; // Default bank fee
-    const wht = settings.isFiler ? 0.01 : 0.04;
-    const fedImpact = 0.16 * 0.25; // 25% realistic pass-through
-    const provincialTax = settings.provincialTaxEnabled ? settings.provincialTaxRate / 100 : 0;
-    const totalTaxRate = bankFee + wht + fedImpact + provincialTax;
+
+    // Pakistan-specific international transaction taxes applied here
+    const bankFeePercent = (settings.banks.find(b => b.name === 'Sadapay')?.tax || 1.5) / 100;
+    const whtPercent = settings.isFiler ? 0.01 : 0.04;
+    const fedImpactPercent = 0.16 * 0.25;
+    const provincialTaxPercent = settings.provincialTaxEnabled ? settings.provincialTaxRate / 100 : 0;
+
+    const totalTaxRate = bankFeePercent + whtPercent + fedImpactPercent + provincialTaxPercent;
     const taxedMarketingBudget = marketingBudget * (1 + totalTaxRate);
+
+    const baseAmountForTax = marketingBudget;
+    const bankFeeAmount = baseAmountForTax * bankFeePercent;
+    const whtAmount = baseAmountForTax * whtPercent;
+    const fedAmount = baseAmountForTax * fedImpactPercent;
+    const provincialTaxAmount = settings.provincialTaxEnabled ? baseAmountForTax * provincialTaxPercent : 0;
+
+    const newTaxDetails: TaxDetails = {
+        bankFee: bankFeeAmount,
+        wht: whtAmount,
+        fed: fedAmount,
+        provincialTax: provincialTaxAmount,
+        total: bankFeeAmount + whtAmount + fedAmount + provincialTaxAmount,
+        bankFeePercent: bankFeePercent * 100,
+        whtPercent: whtPercent * 100,
+        fedImpactPercent: fedImpactPercent * 100,
+        provincialTaxPercent: provincialTaxPercent * 100,
+    };
+    setTaxDetails(newTaxDetails);
 
     const fbrTaxRate = paymentType === 'COD' ? 0.02 : 0.01;
     const fbrTax = sellingPrice * fbrTaxRate;
@@ -205,6 +228,7 @@ export default function PlannerPage() {
         profitStatus,
         summary,
         fbrTax,
+        taxDetails: newTaxDetails,
     });
 
   }, [
@@ -238,6 +262,7 @@ export default function PlannerPage() {
             type: 'Launch',
             ...values,
             ...calculatedValues,
+            taxDetails,
         };
         
         addHistoryRecord(resultData);
@@ -454,6 +479,7 @@ export default function PlannerPage() {
               {calculatedValues && (
                 <>
                     <PlannerResults results={calculatedValues} />
+                    {taxDetails && <TaxBreakdown details={taxDetails} />}
                     <p className="text-xs text-center text-muted-foreground pt-4">
                       Includes estimated international transaction taxes applicable to Pakistani users (Bank Fee, WHT, and FED).
                     </p>

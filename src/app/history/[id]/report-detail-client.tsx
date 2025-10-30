@@ -46,3 +46,5 @@ export function ReportDetailClient({ id }: { id: string }) {
     </div>
   );
 }
+
+    

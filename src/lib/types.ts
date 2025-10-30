@@ -1,6 +1,19 @@
 
+
 export type ProfitStatus = 'Profitable' | 'Near Breakeven' | 'Loss';
 export type PaymentType = 'COD' | 'Online';
+
+export type TaxDetails = {
+    bankFee: number;
+    wht: number;
+    fed: number;
+    provincialTax: number;
+    total: number;
+    bankFeePercent: number;
+    whtPercent: number;
+    fedImpactPercent: number;
+    provincialTaxPercent: number;
+  };
 
 export type BaseAnalysis = {
   id: string;
@@ -11,6 +24,7 @@ export type BaseAnalysis = {
   summary: string;
   paymentType: PaymentType;
   fbrTax: number;
+  taxDetails?: TaxDetails | null;
 };
 
 export type LaunchPlan = BaseAnalysis & {
