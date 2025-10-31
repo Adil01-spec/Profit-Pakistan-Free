@@ -1,16 +1,19 @@
 
-import type { Metadata } from 'next';
+'use client'
 import './globals.css';
 import { Providers } from '@/components/providers';
 import { Toaster } from '@/components/ui/toaster';
 import { cn } from '@/lib/utils';
 import { SettingsProvider } from '@/hooks/use-settings';
 import { HistoryProvider } from '@/hooks/use-history';
-import Script from 'next/script';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import Script from 'next/script';
+import type { Metadata } from 'next';
 
+// Note: Metadata is now defined as a static object as this is a client component.
+// For dynamic metadata in a client component, you would typically manage it with useEffect.
 export const metadata: Metadata = {
   title: 'Profit Pakistan (Free)',
   description: 'A free profitability and ROAS calculator designed for Pakistani entrepreneurs to analyze products, marketing performance, and ad ROI.',
@@ -42,6 +45,7 @@ export default function RootLayout({
           </FirebaseClientProvider>
         </Providers>
         <Script
+            id="adsbygoogle-script"
             async
             src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXX"
             crossOrigin="anonymous"
