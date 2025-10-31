@@ -2,20 +2,19 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { useFirestore } from "@/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { useFirebase } from "@/firebase";
+import { collection, getDocs, Firestore } from "firebase/firestore";
 
 export function AdBanner() {
   const [ads, setAds] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFading, setIsFading] = useState(false);
-  const firestore = useFirestore();
+  const { firestore } = useFirebase();
 
   useEffect(() => {
-    const fetchAds = async () => {
-      if (!firestore) return;
+    const fetchAds = async (db: Firestore) => {
       try {
-        const querySnapshot = await getDocs(collection(firestore, "ads"));
+        const querySnapshot = await getDocs(collection(db, "ads"));
         const fetchedAds = querySnapshot.docs.map((doc) => doc.data());
         
         if (fetchedAds.length > 0) {
@@ -38,9 +37,9 @@ export function AdBanner() {
       }
     };
     
-    // Only run on the client
-    if (typeof window !== "undefined") {
-      fetchAds();
+    // Only run if firestore is available (i.e., on the client)
+    if (firestore) {
+      fetchAds(firestore);
     }
   }, [firestore]);
 
