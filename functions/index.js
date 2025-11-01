@@ -1,32 +1,55 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
 
-const {setGlobalOptions} = require("firebase-functions");
-const {onRequest} = require("firebase-functions/https");
+const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { setGlobalOptions } = require("firebase-functions/v1");
 const logger = require("firebase-functions/logger");
+const fetch = require("node-fetch");
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
 setGlobalOptions({ maxInstances: 10 });
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+exports.sendVerifiedUserToProApp = onDocumentUpdated("paymentRequests/{requestId}", async (event) => {
+  const beforeData = event.data.before.data();
+  const afterData = event.data.after.data();
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+  // Check if the status was changed from 'pending' to 'verified'
+  if (beforeData.status === "pending" && afterData.status === "verified") {
+    logger.info(`Payment verified for ${afterData.email}. Initiating transfer to Pro App.`);
+
+    const proAppUrl = "https://profit-pakistan-pro.vercel.app/api/createProUser";
+    const secretKey = process.env.PRO_APP_SECRET_KEY;
+
+    if (!secretKey || secretKey === 'your_secure_secret_here') {
+      logger.error("PRO_APP_SECRET_KEY is not configured. Cannot send data to Pro App.");
+      return;
+    }
+
+    const payload = {
+      name: afterData.name,
+      email: afterData.email,
+      phone: afterData.phone,
+    };
+
+    try {
+      const response = await fetch(proAppUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + secretKey,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const responseBody = await response.json();
+
+      if (response.ok) {
+        logger.info(`Successfully sent user ${afterData.email} to Pro App.`, { response: responseBody });
+      } else {
+        logger.error(`Failed to send user ${afterData.email} to Pro App.`, {
+          status: response.status,
+          error: responseBody,
+        });
+      }
+    } catch (error) {
+      logger.error(`Error calling Pro App API for user ${afterData.email}:`, error);
+    }
+  }
+});
