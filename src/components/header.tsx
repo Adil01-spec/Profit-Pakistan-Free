@@ -7,9 +7,16 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from './ui/button';
 import { FolderClock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { Skeleton } from './ui/skeleton';
 
 export function Header() {
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -29,7 +36,7 @@ export function Header() {
                 <span className="sr-only">My Reports</span>
             </Link>
           </Button>
-          <ThemeToggle />
+          {isClient ? <ThemeToggle /> : <Skeleton className="h-10 w-10 rounded-full" />}
           <Button
             className="rounded-full text-sm font-medium px-5 py-2 transition-colors bg-primary hover:bg-primary/90"
             variant="default"
