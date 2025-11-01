@@ -1,4 +1,3 @@
-
 'use client'
 
 import { Button } from "@/components/ui/button"
@@ -69,17 +68,20 @@ export default function UpgradePage() {
     setIsSubmitting(true);
     
     try {
-      await addDoc(collection(firestore, 'paymentRequests'), {
+      await addDoc(collection(firestore, 'proRequests'), {
         name: data.name,
         email: data.email,
         phone: data.phone,
-        paymentMethod: data.paymentMethod,
-        transactionId: data.transactionId || "",
-        screenshotFile: data.screenshot?.[0]?.name || "",
-        timestamp: serverTimestamp(),
-        status: "pending",
+        paymentId: 'SP' + Date.now(),
+        status: 'pending',
+        requestedAt: serverTimestamp()
       });
       setSubmissionSuccess(true);
+       toast({
+        title: "✅ Payment request submitted.",
+        description: "We'll verify and send your Pro credentials soon.",
+      });
+
     } catch (error) {
       console.error("Error submitting payment request: ", error);
       toast({
