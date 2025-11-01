@@ -9,14 +9,13 @@ import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from 'zod';
-import { useFirebase } from "@/firebase/provider";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { submitPaymentRequest } from "@/lib/firestore";
 
 
 const paymentSchema = z.object({
@@ -44,7 +43,6 @@ function UpgradeHeader() {
 export default function UpgradePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { firestore } = useFirebase();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
   
@@ -60,34 +58,26 @@ export default function UpgradePage() {
   });
 
   const onSubmit = async (data: PaymentFormValues) => {
-    if (!firestore) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Database service is not available.' });
-      return;
-    }
-
     setIsSubmitting(true);
     
     try {
-      await addDoc(collection(firestore, 'proRequests'), {
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        paymentId: 'SP' + Date.now(),
-        status: 'pending',
-        requestedAt: serverTimestamp()
-      });
-      setSubmissionSuccess(true);
-       toast({
-        title: "✅ Payment request submitted.",
-        description: "We'll verify and send your Pro credentials soon.",
-      });
-
-    } catch (error) {
+      const result = await submitPaymentRequest(data);
+      if (result.success) {
+        setSubmissionSuccess(true);
+        toast({
+          title: "✅ Your payment request has been sent.",
+          description: "We’ll verify and contact you soon.",
+        });
+        console.log("✅ proRequest created");
+      } else {
+        throw new Error(result.error || "An unknown error occurred.");
+      }
+    } catch (error: any) {
       console.error("Error submitting payment request: ", error);
       toast({
         variant: "destructive",
-        title: "⚠️ Submission Failed",
-        description: "Could not submit your request. Please try again.",
+        title: "❌ Something went wrong, please try again later.",
+        description: error.message,
       });
     } finally {
       setIsSubmitting(false);
@@ -104,7 +94,7 @@ export default function UpgradePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-muted-foreground">
-              ✅ Payment request submitted successfully! Please send your screenshot to our WhatsApp for faster approval. You’ll receive your login details within 24 hours after verification.
+              ✅ Your payment request has been sent. We’ll verify and contact you soon. Please also send your screenshot to our WhatsApp for faster approval.
             </p>
             <Button onClick={() => router.push('/')}>Back to Home</Button>
           </CardContent>
