@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -48,6 +47,7 @@ import { AdBanner } from '@/components/ad-banner';
 import { useExchangeRate } from '@/hooks/use-exchange-rate';
 import { format } from 'date-fns';
 import { TaxBreakdown } from '@/components/tax-breakdown';
+import { cn } from '@/lib/utils';
 
 // Helper function to safely format numbers
 const formatNumber = (num: any, decimals = 0) => {
@@ -88,6 +88,7 @@ const formSchema = z
     costPerConversion: z.coerce.number().optional(),
     paymentType: z.enum(['COD', 'Online']),
     adDurationDays: z.coerce.number().optional(),
+    returnedOrdersPercent: z.coerce.number().min(0).max(100).optional(),
   })
   .refine(
     (data) =>
@@ -108,6 +109,9 @@ type CalculatedValues = (Omit<FeasibilityCheck, 'id' | 'date'> & {
     newRoasMultiplier?: number;
     newRoasPercent?: number;
     roasVerdict?: string;
+    totalOrders?: number;
+    returnedOrders?: number;
+    successfulOrders?: number;
 }) | null;
 
 function ManualRateInput({ onSetRate, lastSavedRate }: { onSetRate: (rate: number) => void; lastSavedRate?: number }) {
@@ -171,6 +175,7 @@ export default function FeasibilityPage() {
         costPerConversion: '' as any, // Use empty string for controlled input
         paymentType: 'COD',
         adDurationDays: '' as any, // Use empty string for controlled input
+        returnedOrdersPercent: 0,
     },
   });
 
@@ -195,6 +200,7 @@ export default function FeasibilityPage() {
             costPerConversion: '' as any,
             paymentType: 'COD',
             adDurationDays: '' as any,
+            returnedOrdersPercent: 0,
         });
     }
   }, [isPersistent, settings, reset]);
@@ -212,6 +218,7 @@ export default function FeasibilityPage() {
   const watchedBank = watch('bank');
   const watchedDebitCardTax = watch('debitCardTax');
   const watchedAdDurationDays = watch('adDurationDays');
+  const watchedReturnedOrdersPercent = watch('returnedOrdersPercent');
 
   useEffect(() => {
     if (usdToPkrRate && watchedDebitCardTax !== undefined && settings) {
@@ -244,6 +251,7 @@ export default function FeasibilityPage() {
     const courierRate = toNum(watchedCourierRate);
     const shopifyMonthlyCostUsd = toNum(watchedShopifyMonthlyCost);
     const paymentType = watchedPaymentType;
+    const returnedOrdersPercent = toNum(watchedReturnedOrdersPercent) || 0;
     
     if (sellingPrice <= 0 || sellingPrice <= sourcingCost || !effectiveRate || !settings || !usdToPkrRate) {
       setCalculatedValues(null);
@@ -293,11 +301,15 @@ export default function FeasibilityPage() {
         ? Math.ceil(totalMonthlyFixedCosts / profitPerSale)
         : 0;
 
-    const conversionsPerMonth = costPerConversion > 0 ? adBudget / costPerConversion : 0;
-    const totalRevenue = conversionsPerMonth * sellingPrice;
-    const totalSourcingCost = conversionsPerMonth * sourcingCost;
-    const totalCourierCost = conversionsPerMonth * courierRate;
-    const totalFbrTax = conversionsPerMonth * fbrTax;
+    const totalOrders = costPerConversion > 0 ? adBudget / costPerConversion : 0;
+    const returnRate = returnedOrdersPercent / 100;
+    const returnedOrders = totalOrders * returnRate;
+    const successfulOrders = totalOrders - returnedOrders;
+
+    const totalRevenue = successfulOrders * sellingPrice;
+    const totalSourcingCost = successfulOrders * sourcingCost;
+    const totalCourierCost = successfulOrders * courierRate;
+    const totalFbrTax = successfulOrders * fbrTax;
     
     const finalAdSpend = adSpend > 0 ? adSpend * (1 + whtPercent + fedImpactPercent + provincialTaxPercent) : taxedAdBudget;
 
@@ -324,6 +336,10 @@ export default function FeasibilityPage() {
     } else if (netProfit > -(shopifyCostPkr + finalAdSpend) * 0.2 && netProfit <= 0) {
       profitStatus = 'Near Breakeven';
       summary = `You're close to breaking even. A small improvement in sales or costs could make you profitable.`;
+    }
+    
+    if (returnedOrdersPercent > 10) {
+        summary += ' ⚠️ Your return rate seems high. Consider optimizing packaging, descriptions, or sizing to reduce returns.';
     }
 
     const breakEvenPrice = sourcingCost + courierRate + fbrTax;
@@ -360,7 +376,10 @@ export default function FeasibilityPage() {
         newRoasMultiplier,
         newRoasPercent,
         roasVerdict,
-        taxDetails
+        taxDetails,
+        totalOrders,
+        returnedOrders,
+        successfulOrders,
     });
 
   }, [
@@ -378,7 +397,8 @@ export default function FeasibilityPage() {
     watchedAdDurationDays,
     watchedDebitCardTax,
     form,
-    settings
+    settings,
+    watchedReturnedOrdersPercent,
   ]);
 
 
@@ -782,17 +802,36 @@ export default function FeasibilityPage() {
                     )}
                     />
                     <FormField
-                    control={form.control}
-                    name="adSpend"
-                    render={({ field }) => (
+                      control={form.control}
+                      name="returnedOrdersPercent"
+                      render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Actual Ad Spend (monthly)</FormLabel>
-                        <FormControl>
-                            <Input type="number" {...field} placeholder="Optional, for accurate ROAS"/>
-                        </FormControl>
-                        <FormMessage />
+                          <FormLabel className="flex items-center gap-2">
+                              Returned Orders (%)
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Percentage of total orders that were returned or refunded.</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                          </FormLabel>
+                          <FormControl>
+                            <Input 
+                                type="number" 
+                                {...field}
+                                placeholder="e.g. 10"
+                                className={cn({
+                                    'border-red-500 focus-visible:ring-red-500': (field.value || 0) > 15
+                                })}
+                             />
+                          </FormControl>
+                          <FormMessage />
                         </FormItem>
-                    )}
+                      )}
                     />
                      <FormField
                         control={form.control}
@@ -889,7 +928,7 @@ export default function FeasibilityPage() {
                       </CardHeader>
                       <CardContent>
                         <p
-                          className={`text-2xl font-semibold ${
+                          className={`text-lg font-semibold ${
                             calculatedValues.profitStatus === 'Profitable'
                               ? 'text-green-500'
                               : calculatedValues.profitStatus === 'Near Breakeven'
@@ -899,6 +938,7 @@ export default function FeasibilityPage() {
                         >
                           {calculatedValues.profitStatus}
                         </p>
+                        <p className="text-sm text-muted-foreground mt-1">{calculatedValues.summary}</p>
                       </CardContent>
                     </Card>
                   </div>
@@ -922,6 +962,30 @@ export default function FeasibilityPage() {
                                     <p className="text-xl font-bold">{formatNumber(calculatedValues.newRoasMultiplier, 2)}x ({formatNumber(calculatedValues.newRoasPercent, 1)}%)</p>
                                 </div>
                             </div>
+                        </CardContent>
+                    </Card>
+                  )}
+
+                  {calculatedValues.totalOrders !== undefined && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>📦 Order Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-center space-y-2">
+                             <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Total Orders</p>
+                                    <p className="font-bold text-lg">{formatNumber(calculatedValues.totalOrders)}</p>
+                                </div>
+                                 <div>
+                                    <p className="text-sm text-muted-foreground">Returned Orders</p>
+                                    <p className="font-bold text-lg">{formatNumber(calculatedValues.returnedOrders)} ({watchedReturnedOrdersPercent}%)</p>
+                                </div>
+                                 <div>
+                                    <p className="text-sm text-muted-foreground">Successful Orders</p>
+                                    <p className="font-bold text-lg text-green-500">{formatNumber(calculatedValues.successfulOrders)}</p>
+                                </div>
+                             </div>
                         </CardContent>
                     </Card>
                   )}
@@ -952,5 +1016,3 @@ export default function FeasibilityPage() {
     </main>
   );
 }
-
-    

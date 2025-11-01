@@ -56,6 +56,7 @@ export type FeasibilityCheck = BaseAnalysis & {
   sellingPrice: number;
   sourcingCost: number;
   adDurationDays?: number;
+  returnedOrdersPercent?: number;
 
   // Calculated
   totalMonthlyFixedCosts: number;
@@ -87,5 +88,3 @@ export interface AppSettings {
     provincialTaxEnabled: boolean;
     provincialTaxRate: number;
 }
-
-    

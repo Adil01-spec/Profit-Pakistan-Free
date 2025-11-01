@@ -12,6 +12,8 @@ export function AdBanner() {
   const { firestore } = useFirebase();
 
   useEffect(() => {
+    if (!firestore) return;
+
     const fetchAds = async (db: Firestore) => {
         try {
             const querySnapshot = await getDocs(collection(db, "ads"));
@@ -41,9 +43,7 @@ export function AdBanner() {
         }
     };
     
-    if (firestore) {
-      fetchAds(firestore);
-    }
+    fetchAds(firestore);
   }, [firestore]);
 
   useEffect(() => {
