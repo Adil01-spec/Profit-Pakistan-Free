@@ -1,3 +1,4 @@
+
 'use client'
 
 import { Button } from "@/components/ui/button"
@@ -9,7 +10,7 @@ import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from 'zod';
-import { useFirestore } from "@/firebase";
+import { useFirebase } from "@/firebase/provider";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,7 +45,7 @@ function UpgradeHeader() {
 export default function UpgradePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const firestore = useFirestore();
+  const { firestore } = useFirebase();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
   
