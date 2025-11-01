@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useFirebase } from "@/firebase";
-import { collection, getDocs, Firestore } from "firebase/firestore";
+import { collection, getDocs, type Firestore } from "firebase/firestore";
 
 export function AdBanner() {
   const [ads, setAds] = useState<any[]>([]);
@@ -13,31 +13,34 @@ export function AdBanner() {
 
   useEffect(() => {
     const fetchAds = async (db: Firestore) => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "ads"));
-        const fetchedAds = querySnapshot.docs.map((doc) => doc.data());
-        
-        if (fetchedAds.length > 0) {
-          setAds(fetchedAds);
-        } else {
-          // Fallback to local JSON if Firestore is empty or fails
-          const res = await fetch("/ads.json");
-          const fallbackAds = await res.json();
-          setAds(fallbackAds);
-        }
-      } catch (err) {
-        console.error("Ad load from Firestore failed, using fallback:", err);
         try {
-          const res = await fetch("/ads.json");
-          const fallbackAds = await res.json();
-          setAds(fallbackAds);
-        } catch (fallbackErr) {
-            console.error("Fallback ads failed to load:", fallbackErr);
+            const querySnapshot = await getDocs(collection(db, "ads"));
+            const fetchedAds = querySnapshot.docs.map((doc) => doc.data());
+            
+            if (fetchedAds.length > 0) {
+              setAds(fetchedAds);
+            } else {
+              // Fallback to local JSON if Firestore is empty or fails
+              const res = await fetch("/ads.json");
+              if (res.ok) {
+                const fallbackAds = await res.json();
+                setAds(fallbackAds);
+              }
+            }
+        } catch (err) {
+            console.error("Ad load from Firestore failed, using fallback:", err);
+            try {
+              const res = await fetch("/ads.json");
+              if (res.ok) {
+                const fallbackAds = await res.json();
+                setAds(fallbackAds);
+              }
+            } catch (fallbackErr) {
+                console.error("Fallback ads failed to load:", fallbackErr);
+            }
         }
-      }
     };
     
-    // Only run if firestore is available (i.e., on the client)
     if (firestore) {
       fetchAds(firestore);
     }
