@@ -3,82 +3,35 @@
 
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Loader2 } from "lucide-react"
+import { ArrowLeft, Loader2, CheckCircle, Upload } from "lucide-react"
 import Link from 'next/link';
-import { createSafepaySession } from "@/app/actions/safepay";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from 'zod';
+import { useFirestore } from "@/firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default function UpgradePage() {
-  const router = useRouter();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
 
-  const plans = [
-    {
-      name: "Free Plan",
-      price: "₨ 0 /month",
-      highlight: "For quick access and testing basic features.",
-      features: [
-        "No login required — start instantly.",
-        "Access to the basic AI assistant.",
-        "Limited calculators (Profit, Expense & ROI only).",
-        "Simple and clean UI with ads.",
-        "Uses one default AI model.",
-        "No chat memory or data saving."
-      ],
-      buttonText: "Current Plan",
-      disabled: true,
-      border: "border-gray-300 dark:border-gray-700",
-      bg: "bg-gray-50 dark:bg-gray-900/50",
-      text: "text-gray-800 dark:text-gray-200"
-    },
-    {
-      name: "Pro Plan",
-      price: "₨ 599 /month",
-      highlight: "Unlock full AI + business insights at low cost.",
-      features: [
-        "Full access to all premium features.",
-        "Ad-free modern dashboard & dark mode.",
-        "Unlocks three AI models: LLaMA, Gemini, and ChatGPT.",
-        "Smart auto-model selection for better accuracy & speed.",
-        "Includes all advanced calculators.",
-        "Content Generator (posts, captions, titles).",
-        "Fast responses, longer chat memory, and personalized insights.",
-        "Priority support and early access to new tools.",
-      ],
-      buttonText: "Proceed to Payment",
-      disabled: false,
-      border: "border-yellow-400 dark:border-yellow-500 shadow-yellow-500/20",
-      bg: "bg-yellow-50 dark:bg-yellow-950/40",
-      text: "text-yellow-800 dark:text-yellow-200"
-    }
-  ];
+const paymentSchema = z.object({
+  name: z.string().min(3, "Full name is required."),
+  email: z.string().email("Please enter a valid email address."),
+  phone: z.string().min(11, "Please enter a valid 11-digit phone number."),
+  paymentMethod: z.enum(["JazzCash", "EasyPaisa", "Bank Transfer"]),
+  transactionId: z.string().optional(),
+  screenshot: z.any().optional(),
+});
 
-  const handleUpgrade = async () => {
-    setIsLoading(true);
-    try {
-      const result = await createSafepaySession(599);
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      if (result.redirectUrl) {
-        // Redirect the user to the Safepay checkout page
-        router.push(result.redirectUrl);
-      } else {
-        throw new Error("Could not get checkout URL.");
-      }
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "⚠️ Payment Error",
-        description: error.message || "Could not initiate payment. Please try again.",
-      });
-      setIsLoading(false);
-    }
-  };
+type PaymentFormValues = z.infer<typeof paymentSchema>;
 
-  function UpgradeHeader() {
+function UpgradeHeader() {
     return (
       <div className="absolute top-6 left-6 flex items-center gap-2 mb-4">
         <Link href="/" className="flex items-center text-muted-foreground hover:text-foreground">
@@ -87,58 +40,198 @@ export default function UpgradePage() {
         </Link>
       </div>
     );
+}
+
+export default function UpgradePage() {
+  const router = useRouter();
+  const { toast } = useToast();
+  const firestore = useFirestore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionSuccess, setSubmissionSuccess] = useState(false);
+  
+  const form = useForm<PaymentFormValues>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      paymentMethod: "JazzCash",
+      transactionId: "",
+    }
+  });
+
+  const onSubmit = async (data: PaymentFormValues) => {
+    if (!firestore) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Database service is not available.' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      await addDoc(collection(firestore, 'paymentRequests'), {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        paymentMethod: data.paymentMethod,
+        transactionId: data.transactionId || "",
+        screenshotFile: data.screenshot?.[0]?.name || "",
+        timestamp: serverTimestamp(),
+        status: "pending",
+      });
+      setSubmissionSuccess(true);
+    } catch (error) {
+      console.error("Error submitting payment request: ", error);
+      toast({
+        variant: "destructive",
+        title: "⚠️ Submission Failed",
+        description: "Could not submit your request. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (submissionSuccess) {
+    return (
+      <div className="min-h-screen px-6 py-12 bg-background flex items-center justify-center">
+        <Card className="w-full max-w-lg text-center">
+          <CardHeader>
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <CardTitle>Request Submitted!</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              ✅ Payment request submitted successfully! Please send your screenshot to our WhatsApp for faster approval. You’ll receive your login details within 24 hours after verification.
+            </p>
+            <Button onClick={() => router.push('/')}>Back to Home</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen px-6 py-12 bg-background text-foreground transition-colors duration-300 font-sans relative">
        <UpgradeHeader />
-      <h1 className="text-3xl font-bold text-center mb-2 mt-8 sm:mt-0">Choose Your Plan 🚀</h1>
-      <p className="text-center text-muted-foreground mb-10">
-        Scale your business with AI-powered insights — choose the plan that fits you best.
+      <h1 className="text-3xl font-bold text-center mb-2 mt-8 sm:mt-0">Upgrade to Pro</h1>
+      <p className="text-center text-muted-foreground mb-10 max-w-2xl mx-auto">
+        To upgrade to the Pro Plan for ₨599/month, please complete the payment using one of the methods below and submit the form for manual verification.
       </p>
 
-      <div className="grid gap-8 grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto">
-        {plans.map((plan, i) => (
-          <div
-            key={i}
-            className={`flex flex-col justify-between border rounded-2xl shadow-lg p-6 transition-all duration-300 transform hover:-translate-y-1 ${plan.border} ${plan.bg} ${plan.text}`}
-          >
-            <div>
-              <h2 className="text-2xl font-semibold mb-2">{plan.name}</h2>
-              <p className="text-3xl font-bold mb-2">{plan.price}</p>
-              <p className="text-sm opacity-90 mb-6">{plan.highlight}</p>
-              <ul className="space-y-3 mb-6 text-sm">
-                {plan.features.map((f, j) => (
-                  <li key={j} className="flex items-start">
-                    <span className="text-yellow-500 mr-3 mt-1">✔</span> {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <Button
-              onClick={() => {
-                if (!plan.disabled) {
-                  handleUpgrade();
-                }
-              }}
-              disabled={plan.disabled || isLoading}
-              className={`w-full mt-4 py-3 rounded-xl font-medium transition-colors ${
-                plan.disabled
-                  ? 'bg-muted text-muted-foreground cursor-not-allowed'
-                  : 'bg-yellow-500 hover:bg-yellow-600 text-white dark:bg-yellow-400 dark:hover:bg-yellow-300 dark:text-black'
-              }`}
-            >
-              {isLoading && !plan.disabled && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLoading && !plan.disabled ? 'Redirecting...' : plan.buttonText}
-            </Button>
-          </div>
-        ))}
-      </div>
-
-      <p className="text-xs text-center text-muted-foreground mt-8">
-        *Payments are processed securely via Safepay. You’ll receive confirmation via email after successful activation.
-      </p>
+      <Card className="max-w-xl mx-auto">
+        <CardHeader>
+            <CardTitle>Submit Payment Details</CardTitle>
+            <CardDescription>Fill out this form after you've made the payment.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                    <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Full Name</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g. Ahmed Khan" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Email Address</FormLabel>
+                                <FormControl>
+                                    <Input type="email" placeholder="ahmed.khan@example.com" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="phone"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Phone Number</FormLabel>
+                                <FormControl>
+                                    <Input type="tel" placeholder="03001234567" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                     <FormField
+                        control={form.control}
+                        name="paymentMethod"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Payment Method</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a payment method" />
+                                </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    <SelectItem value="JazzCash">JazzCash</SelectItem>
+                                    <SelectItem value="EasyPaisa">EasyPaisa</SelectItem>
+                                    <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="transactionId"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Transaction ID (Optional)</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g. 1234567890" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="screenshot"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Payment Screenshot (Optional)</FormLabel>
+                            <FormControl>
+                                <Input type="file" {...form.register('screenshot')} />
+                            </FormControl>
+                             <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <Button type="submit" disabled={isSubmitting} className="w-full">
+                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Submit for Verification
+                    </Button>
+                </form>
+            </Form>
+        </CardContent>
+        <CardFooter className="flex-col items-start gap-4">
+            <Alert>
+                <AlertDescription className="text-center">
+                    After completing payment, please send your payment screenshot to our WhatsApp at <strong>+92XXXXXXXXXX</strong> for quick verification.
+                </AlertDescription>
+            </Alert>
+             <p className="text-xs text-muted-foreground text-center w-full">
+                Note: Account verification is manual. Once your payment is confirmed, your Profit Pakistan Pro credentials will be emailed to you.
+            </p>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

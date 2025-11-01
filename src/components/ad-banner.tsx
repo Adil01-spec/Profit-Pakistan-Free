@@ -1,18 +1,33 @@
-
 'use client';
 
-import { useEffect, useState } from "react";
-import { useFirebase } from "@/firebase";
+import { useEffect, useState, useContext } from "react";
+import { FirebaseContext } from "@/firebase/provider";
 import { collection, getDocs, type Firestore } from "firebase/firestore";
 
 export function AdBanner() {
   const [ads, setAds] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFading, setIsFading] = useState(false);
-  const { firestore } = useFirebase();
+  const firebaseContext = useContext(FirebaseContext);
 
   useEffect(() => {
-    if (!firestore) return;
+    // Only fetch if context and services are available (client-side).
+    if (!firebaseContext || !firebaseContext.areServicesAvailable || !firebaseContext.firestore) {
+        // Fallback to local JSON if firebase is not available
+        const fetchFallbackAds = async () => {
+            try {
+                const res = await fetch("/ads.json");
+                if (res.ok) {
+                    const fallbackAds = await res.json();
+                    setAds(fallbackAds);
+                }
+            } catch (fallbackErr) {
+                console.error("Fallback ads failed to load:", fallbackErr);
+            }
+        };
+        fetchFallbackAds();
+        return;
+    }
 
     const fetchAds = async (db: Firestore) => {
         try {
@@ -43,8 +58,8 @@ export function AdBanner() {
         }
     };
     
-    fetchAds(firestore);
-  }, [firestore]);
+    fetchAds(firebaseContext.firestore);
+  }, [firebaseContext]);
 
   useEffect(() => {
     if (ads.length <= 1) return;

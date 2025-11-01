@@ -10,11 +10,13 @@
  * - /free_usage/{userId}: Free usage tracking, accessible only by the user.
  * - /plans/{planId}: Pricing plans, publicly readable.
  * - /ads/{adId}: Ad configurations, publicly readable.
+ * - /paymentRequests/{requestId}: Manual payment submissions, create-only for clients.
  *
  * Key Security Decisions:
  * - Users can only access their own data (profiles, history, free usage).
  * - Listing of documents in user-owned subcollections is allowed only by the owner.
  * - Pricing plans and ads are publicly readable.
+ * - Payment requests can be created by anyone but cannot be read, updated, or deleted by clients.
  * - No write access is granted to clients for ads or plans. These are assumed to be managed via a backend process.
  *
  * Denormalization for Authorization:
@@ -115,5 +117,20 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if false;
     }
+
+    /**
+     * @description Allows anyone to submit a payment request for manual verification.
+     * @path /paymentRequests/{requestId}
+     * @allow (create) - Any user can submit a payment request.
+     * @deny (get, list, update, delete) - Clients cannot read, update, or delete any payment requests.
+     * @principle Write-only access for clients, managed by admins.
+     */
+     match /paymentRequests/{requestId} {
+        allow create: if true;
+        allow get: if false;
+        allow list: if false;
+        allow update: if false;
+        allow delete: if false;
+     }
   }
 }
