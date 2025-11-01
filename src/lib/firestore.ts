@@ -1,4 +1,4 @@
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, serverTimestamp, type Firestore } from 'firebase/firestore';
 import app from '@/firebase/config';
 
 interface PaymentRequestData {
@@ -7,11 +7,14 @@ interface PaymentRequestData {
     phone: string;
     paymentMethod: string;
     transactionId?: string;
+    paymentId: string;
 }
 
-export async function submitPaymentRequest(data: PaymentRequestData): Promise<{ success: boolean, error?: string }> {
+export async function submitPaymentRequest(
+    firestore: Firestore,
+    data: PaymentRequestData
+): Promise<{ success: boolean; error?: string }> {
     try {
-        const firestore = getFirestore(app);
         const proRequestsCollection = collection(firestore, 'proRequests');
 
         await addDoc(proRequestsCollection, {
@@ -20,19 +23,19 @@ export async function submitPaymentRequest(data: PaymentRequestData): Promise<{ 
             phone: data.phone,
             paymentMethod: data.paymentMethod,
             transactionId: data.transactionId || null,
-            // screenshotUrl will be handled separately if needed, e.g., via Cloud Storage
-            paymentId: 'SP' + Date.now(),
+            paymentId: data.paymentId,
             status: 'pending',
             requestedAt: serverTimestamp(),
         });
-
+        
+        console.log("✅ proRequest created");
         return { success: true };
+
     } catch (error: any) {
-        console.error("Error writing to Firestore: ", error);
-        // Check for specific Firestore errors
+        console.error("Firestore write failed:", error);
         if (error.code === 'permission-denied') {
-            return { success: false, error: "Permission denied. Please check your security rules." };
+            return { success: false, error: "Permission denied. Please check security rules." };
         }
-        return { success: false, error: error.message || "Could not submit payment request." };
+        return { success: false, error: "Failed to submit. Please check your internet or try again later." };
     }
 }

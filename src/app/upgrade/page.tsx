@@ -2,20 +2,20 @@
 
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Loader2, CheckCircle, Upload } from "lucide-react"
+import { ArrowLeft, Loader2, CheckCircle } from "lucide-react"
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from 'zod';
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { submitPaymentRequest } from "@/lib/firestore";
+import { useFirebase } from "@/firebase/provider";
 
 
 const paymentSchema = z.object({
@@ -45,6 +45,7 @@ export default function UpgradePage() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
+  const { firestore } = useFirebase();
   
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
@@ -59,16 +60,28 @@ export default function UpgradePage() {
 
   const onSubmit = async (data: PaymentFormValues) => {
     setIsSubmitting(true);
+    if (!firestore) {
+        toast({
+            variant: "destructive",
+            title: "❌ Firestore not available.",
+            description: "Please refresh the page and try again.",
+        });
+        setIsSubmitting(false);
+        return;
+    }
     
     try {
-      const result = await submitPaymentRequest(data);
+      const result = await submitPaymentRequest(firestore, {
+          ...data,
+          paymentId: 'SP' + Date.now()
+      });
+
       if (result.success) {
         setSubmissionSuccess(true);
         toast({
           title: "✅ Your payment request has been sent.",
           description: "We’ll verify and contact you soon.",
         });
-        console.log("✅ proRequest created");
       } else {
         throw new Error(result.error || "An unknown error occurred.");
       }
