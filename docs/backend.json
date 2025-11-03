@@ -133,20 +133,6 @@
         "link": { "type": "string", "format": "uri", "description": "Destination URL for the ad." },
         "text": { "type": "string", "description": "Fallback text for the ad." }
       }
-    },
-    "ProRequest": {
-        "title": "ProRequest",
-        "description": "Represents a manual payment submission from a user for a Pro upgrade.",
-        "type": "object",
-        "properties": {
-            "name": { "type": "string", "description": "Full name of the user." },
-            "email": { "type": "string", "format": "email", "description": "Email address for account creation." },
-            "phone": { "type": "string", "description": "Contact phone number." },
-            "paymentId": { "type": "string", "description": "A unique identifier for the payment request." },
-            "requestedAt": { "type": "string", "format": "date-time", "description": "When the request was submitted." },
-            "status": { "type": "string", "enum": ["pending", "verified", "rejected"], "description": "The verification status of the payment." }
-        },
-        "required": ["name", "email", "phone", "paymentId", "requestedAt", "status"]
     }
   },
   "auth": {
@@ -175,10 +161,6 @@
     "/ads/{adId}": {
         "schema": { "$ref": "#/entities/Ad" },
         "description": "Stores ad configuration data, which is publicly readable."
-    },
-    "/proRequests/{requestId}": {
-      "schema": { "$ref": "#/entities/ProRequest" },
-      "description": "Stores manual payment submissions for Pro upgrades. Writable by anyone, but not readable or updatable by clients."
     }
   }
 }

@@ -1,92 +1,97 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
 
-'use server';
+    /**
+     * @description Allows users to read and write their own profile data.
+     * @path /users/{userId}
+     * @allow (create) - Authenticated user creating their own profile.
+     * @allow (get, update, delete) - Authenticated user accessing their own profile.
+     * @deny (create, update, delete) - Any other user attempting to modify this profile.
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId} {
+      // isOwner function allows users to read and write their own profile data
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
 
-const getApiUrl = () => {
-    const mode = process.env.NEXT_PUBLIC_SAFEPAY_MODE;
-    return mode === 'sandbox'
-        ? 'https://sandbox.api.getsafepay.com'
-        : 'https://api.getsafepay.com';
-};
-
-export async function createSafepaySession(amount: number) {
-    const apiKey = process.env.SAFEPAY_API_KEY;
-    const successUrl = process.env.NEXT_PUBLIC_SUCCESS_URL;
-    const cancelUrl = process.env.NEXT_PUBLIC_CANCEL_URL;
-    
-    if (!apiKey || !successUrl || !cancelUrl) {
-        console.error('Safepay environment variables are not configured correctly.');
-        return { error: 'Payment system is not configured. Please contact support.' };
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && resource != null;
+      allow delete: if isOwner(userId) && resource != null;
     }
 
-    const apiUrl = getApiUrl();
-    
-    try {
-        const response = await fetch(`${apiUrl}/checkout/v1/session`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify({
-                amount: amount, 
-                currency: 'PKR',
-                success_url: successUrl,
-                cancel_url: cancelUrl,
-            })
-        });
-
-        const data = await response.json();
-        
-        if (!response.ok) {
-            console.error('Safepay API Error:', data);
-            throw new Error(data.error?.message || 'Failed to create payment session.');
-        }
-        
-        if (!data.data?.url) {
-             throw new Error('No redirect URL received from Safepay.');
-        }
-
-        return { redirectUrl: data.data.url };
-
-    } catch (error: any) {
-        console.error('Error creating Safepay session:', error);
-        return { error: error.message || 'An unexpected error occurred.' };
-    }
-}
-
-
-export async function verifySafepayPayment(order_id: string): Promise<{ success: boolean; email?: string; error?: string }> {
-    const secretKey = process.env.SAFEPAY_SECRET;
-    if (!secretKey) {
-        return { success: false, error: 'Safepay secret key is not configured on the server.' };
+    /**
+     * @description Allows users to read, create, update, and delete their own analysis records.
+     * @path /users/{userId}/history/{recordId}
+     * @allow (create) - Authenticated user creating an analysis record under their own user ID.
+     * @allow (get, update, delete, list) - Authenticated user accessing their own analysis record.
+     * @deny (create, update, delete, list) - Any other user attempting to modify this analysis record.
+     * @principle Enforces document ownership for writes.
+     */
+    match /users/{userId}/history/{recordId} {
+      // isOwner function allows users to read and write their own profile data
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && resource != null;
+      allow delete: if isOwner(userId) && resource != null;
     }
 
-    const apiUrl = getApiUrl();
-    
-    try {
-        const response = await fetch(`${apiUrl}/order/v1/payments?order_id=${order_id}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${secretKey}`
-            }
-        });
-        
-        const result = await response.json();
-        
-        if (!response.ok || result.status.error) {
-            console.error('Safepay Verification Error:', result);
-            throw new Error(result.status.message || 'Payment verification request failed.');
-        }
-        
-        const payment = result.data.payments.find((p: any) => p.status === 'PAID');
-        
-        if (payment) {
-            return { success: true, email: payment.customer.email };
-        } else {
-            return { success: false, error: 'Payment not completed.' };
-        }
-    } catch (error: any) {
-        console.error('Error verifying Safepay payment:', error);
-        return { success: false, error: error.message || 'An unexpected verification error occurred.' };
+    /**
+     * @description Allows users to read and write their own free usage data.
+     * @path /free_usage/{userId}
+     * @allow (create) - Authenticated user creating their own free usage record.
+     * @allow (get, update, delete) - Authenticated user accessing their own free usage record.
+     * @deny (create, update, delete) - Any other user attempting to modify this free usage record.
+     * @principle Enforces document ownership for writes.
+     */
+    match /free_usage/{userId} {
+      // isOwner function allows users to read and write their own profile data
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) && resource != null;
+      allow delete: if isOwner(userId) && resource != null;
     }
+
+    /**
+     * @description Allows anyone to read pricing plans.
+     * @path /plans/{planId}
+     * @allow (get, list) - Any user, authenticated or not, can read pricing plans.
+     * @deny (create, update, delete) - No one can create, update, or delete pricing plans through client-side rules.
+     * @principle Publicly readable data.
+     */
+    match /plans/{planId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Allows anyone to read ad configurations.
+     * @path /ads/{adId}
+     * @allow (get, list) - Any user, authenticated or not, can read ad configurations.
+     * @deny (create, update, delete) - No one can create, update, or delete ad configurations through client-side rules.
+     * @principle Publicly readable data.
+     */
+    match /ads/{adId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
 }

@@ -2,32 +2,11 @@
 
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Loader2, CheckCircle } from "lucide-react"
+import { ArrowLeft, ExternalLink } from "lucide-react"
 import Link from 'next/link';
-import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from 'zod';
-import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { submitPaymentRequest } from "@/lib/firestore";
-import { useFirebase } from "@/firebase/provider";
 
-
-const paymentSchema = z.object({
-  name: z.string().min(3, "Full name is required."),
-  email: z.string().email("Please enter a valid email address."),
-  phone: z.string().min(11, "Please enter a valid 11-digit phone number."),
-  paymentMethod: z.enum(["JazzCash", "EasyPaisa", "Bank Transfer"]),
-  transactionId: z.string().optional(),
-  screenshot: z.any().optional(),
-});
-
-type PaymentFormValues = z.infer<typeof paymentSchema>;
 
 function UpgradeHeader() {
     return (
@@ -42,198 +21,29 @@ function UpgradeHeader() {
 
 export default function UpgradePage() {
   const router = useRouter();
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submissionSuccess, setSubmissionSuccess] = useState(false);
-  const { firestore } = useFirebase();
-  
-  const form = useForm<PaymentFormValues>({
-    resolver: zodResolver(paymentSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      paymentMethod: "JazzCash",
-      transactionId: "",
-    }
-  });
-
-  const onSubmit = async (data: PaymentFormValues) => {
-    setIsSubmitting(true);
-    if (!firestore) {
-        toast({
-            variant: "destructive",
-            title: "❌ Firestore not available.",
-            description: "Please refresh the page and try again.",
-        });
-        setIsSubmitting(false);
-        return;
-    }
-    
-    try {
-      const result = await submitPaymentRequest(firestore, {
-          ...data,
-          paymentId: 'SP' + Date.now()
-      });
-
-      if (result.success) {
-        setSubmissionSuccess(true);
-        toast({
-          title: "✅ Your payment request has been sent.",
-          description: "We’ll verify and contact you soon.",
-        });
-      } else {
-        throw new Error(result.error || "An unknown error occurred.");
-      }
-    } catch (error: any) {
-      console.error("Error submitting payment request: ", error);
-      toast({
-        variant: "destructive",
-        title: "❌ Something went wrong, please try again later.",
-        description: error.message,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (submissionSuccess) {
-    return (
-      <div className="min-h-screen px-6 py-12 bg-background flex items-center justify-center">
-        <Card className="w-full max-w-lg text-center">
-          <CardHeader>
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <CardTitle>Request Submitted!</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
-              ✅ Your payment request has been sent. We’ll verify and contact you soon. Please also send your screenshot to our WhatsApp for faster approval.
-            </p>
-            <Button onClick={() => router.push('/')}>Back to Home</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const proAppUrl = "https://profit-pakistan-pro.vercel.app/login";
 
   return (
-    <div className="min-h-screen px-6 py-12 bg-background text-foreground transition-colors duration-300 font-sans relative">
+    <div className="min-h-screen px-6 py-12 bg-background text-foreground transition-colors duration-300 font-sans relative flex items-center justify-center">
        <UpgradeHeader />
-      <h1 className="text-3xl font-bold text-center mb-2 mt-8 sm:mt-0">Upgrade to Pro</h1>
-      <p className="text-center text-muted-foreground mb-10 max-w-2xl mx-auto">
-        To upgrade to the Pro Plan for ₨599/month, please complete the payment using one of the methods below and submit the form for manual verification.
-      </p>
-
-      <Card className="max-w-xl mx-auto">
+      
+      <Card className="max-w-lg mx-auto text-center">
         <CardHeader>
-            <CardTitle>Submit Payment Details</CardTitle>
-            <CardDescription>Fill out this form after you've made the payment.</CardDescription>
+            <CardTitle className="text-2xl font-bold">Upgrade to Pro</CardTitle>
+            <CardDescription>Unlock advanced features and take your business to the next level.</CardDescription>
         </CardHeader>
-        <CardContent>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Full Name</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="e.g. Ahmed Khan" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Email Address</FormLabel>
-                                <FormControl>
-                                    <Input type="email" placeholder="ahmed.khan@example.com" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="phone"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Phone Number</FormLabel>
-                                <FormControl>
-                                    <Input type="tel" placeholder="03001234567" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                     <FormField
-                        control={form.control}
-                        name="paymentMethod"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Payment Method</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select a payment method" />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="JazzCash">JazzCash</SelectItem>
-                                    <SelectItem value="EasyPaisa">EasyPaisa</SelectItem>
-                                    <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="transactionId"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Transaction ID (Optional)</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="e.g. 1234567890" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="screenshot"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Payment Screenshot (Optional)</FormLabel>
-                            <FormControl>
-                                <Input type="file" {...form.register('screenshot')} />
-                            </FormControl>
-                             <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <Button type="submit" disabled={isSubmitting} className="w-full">
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Submit for Verification
-                    </Button>
-                </form>
-            </Form>
+        <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+                You will be redirected to the Profit Pakistan Pro application to complete your upgrade and log in.
+            </p>
+            <Button onClick={() => window.open(proAppUrl, '_blank')} size="lg" className="w-full">
+                Go to Profit Pakistan Pro
+                <ExternalLink className="ml-2 h-4 w-4" />
+            </Button>
         </CardContent>
-        <CardFooter className="flex-col items-start gap-4">
-            <Alert>
-                <AlertDescription className="text-center">
-                    After completing payment, please send your payment screenshot to our WhatsApp at <strong>+92XXXXXXXXXX</strong> for quick verification.
-                </AlertDescription>
-            </Alert>
+        <CardFooter>
              <p className="text-xs text-muted-foreground text-center w-full">
-                Note: Account verification is manual. Once your payment is confirmed, your Profit Pakistan Pro credentials will be emailed to you.
+                Note: The Pro version handles payments and account creation securely.
             </p>
         </CardFooter>
       </Card>
