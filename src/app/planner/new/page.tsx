@@ -167,28 +167,25 @@ export default function PlannerPage() {
         return;
     }
 
-    // Pakistan-specific international transaction taxes applied here
-    const bankFeePercent = (settings.banks.find(b => b.name === 'Sadapay')?.tax || 1.5) / 100;
+    // Pakistan-specific international transaction taxes applied here on marketing budget
     const whtPercent = settings.isFiler ? 0.01 : 0.04;
     const fedImpactPercent = 0.16 * 0.25;
     const provincialTaxPercent = settings.provincialTaxEnabled ? settings.provincialTaxRate / 100 : 0;
 
-    const totalTaxRate = bankFeePercent + whtPercent + fedImpactPercent + provincialTaxPercent;
-    const taxedMarketingBudget = marketingBudget * (1 + totalTaxRate);
-
-    const baseAmountForTax = marketingBudget;
-    const bankFeeAmount = baseAmountForTax * bankFeePercent;
-    const whtAmount = baseAmountForTax * whtPercent;
-    const fedAmount = baseAmountForTax * fedImpactPercent;
-    const provincialTaxAmount = settings.provincialTaxEnabled ? baseAmountForTax * provincialTaxPercent : 0;
+    const totalTaxRateOnAds = whtPercent + fedImpactPercent + provincialTaxPercent;
+    const taxedMarketingBudget = marketingBudget * (1 + totalTaxRateOnAds);
+    
+    const whtAmount = marketingBudget * whtPercent;
+    const fedAmount = marketingBudget * fedImpactPercent;
+    const provincialTaxAmount = settings.provincialTaxEnabled ? marketingBudget * provincialTaxPercent : 0;
 
     const newTaxDetails: TaxDetails = {
-        bankFee: bankFeeAmount,
+        bankFee: 0, // No bank fee on marketing budget as it's not a USD transaction here
         wht: whtAmount,
         fed: fedAmount,
         provincialTax: provincialTaxAmount,
-        total: bankFeeAmount + whtAmount + fedAmount + provincialTaxAmount,
-        bankFeePercent: bankFeePercent * 100,
+        total: whtAmount + fedAmount + provincialTaxAmount,
+        bankFeePercent: 0,
         whtPercent: whtPercent * 100,
         fedImpactPercent: fedImpactPercent * 100,
         provincialTaxPercent: provincialTaxPercent * 100,
@@ -477,9 +474,9 @@ export default function PlannerPage() {
               {calculatedValues && (
                 <>
                     <PlannerResults results={calculatedValues} />
-                    {taxDetails && <TaxBreakdown details={taxDetails} />}
+                    {taxDetails && taxDetails.total > 0 && <TaxBreakdown details={taxDetails} />}
                     <p className="text-xs text-center text-muted-foreground pt-4">
-                      Includes estimated international transaction taxes applicable to Pakistani users (Bank Fee, WHT, and FED).
+                      Includes estimated taxes on digital ad spend (WHT, FED).
                     </p>
                 </>
               )}
@@ -498,5 +495,3 @@ export default function PlannerPage() {
     </main>
   );
 }
-
-    

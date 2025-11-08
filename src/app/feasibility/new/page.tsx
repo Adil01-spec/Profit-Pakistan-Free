@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -261,7 +262,6 @@ export default function FeasibilityPage() {
 
     const shopifyCostPkrBeforeTax = watchedShopifyPlan === 'regular' ? shopifyMonthlyCostUsd * usdToPkrRate : 0;
     const adBudgetPkr = adBudget; // Assuming ad budget is entered in PKR
-    const internationalCostsPkr = shopifyCostPkrBeforeTax + adBudgetPkr;
 
     // Pakistan-specific international transaction taxes applied here
     const bankFeePercent = watchedDebitCardTax / 100;
@@ -288,8 +288,8 @@ export default function FeasibilityPage() {
         provincialTaxPercent: provincialTaxPercent * 100,
     });
 
-    const shopifyCostPkr = watchedShopifyPlan === 'regular' ? shopifyCostPkrBeforeTax * (1 + bankFeePercent + whtPercent + fedImpactPercent + provincialTaxPercent) : 0;
-    const taxedAdBudget = adBudgetPkr * (1 + whtPercent + fedImpactPercent + provincialTaxPercent);
+    const shopifyCostPkr = watchedShopifyPlan === 'regular' ? shopifyCostPkrBeforeTax + (shopifyCostPkrBeforeTax * (bankFeePercent + whtPercent + fedImpactPercent + provincialTaxPercent)) : 0;
+    const taxedAdBudget = adBudgetPkr + (adBudgetPkr * (whtPercent + fedImpactPercent + provincialTaxPercent));
 
     const totalMonthlyFixedCosts = shopifyCostPkr + taxedAdBudget;
 
@@ -311,7 +311,7 @@ export default function FeasibilityPage() {
     const totalCourierCost = successfulOrders * courierRate;
     const totalFbrTax = successfulOrders * fbrTax;
     
-    const finalAdSpend = adSpend > 0 ? adSpend * (1 + whtPercent + fedImpactPercent + provincialTaxPercent) : taxedAdBudget;
+    const finalAdSpend = adSpend > 0 ? adSpend + (adSpend * (whtPercent + fedImpactPercent + provincialTaxPercent)) : taxedAdBudget;
 
     const netProfit =
       totalRevenue -

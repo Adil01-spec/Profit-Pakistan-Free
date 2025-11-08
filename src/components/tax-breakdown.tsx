@@ -22,7 +22,7 @@ const formatPkr = (num: number) => {
 };
 
 export function TaxBreakdown({ details }: TaxBreakdownProps) {
-  if (!details) return null;
+  if (!details || details.total <= 0) return null;
 
   return (
     <Accordion type="single" collapsible className="w-full">
@@ -36,10 +36,12 @@ export function TaxBreakdown({ details }: TaxBreakdownProps) {
         <AccordionContent>
           <div className="space-y-2 rounded-md border bg-background/50 p-4">
             <ul className="space-y-1 text-sm">
-              <li className="flex justify-between">
-                <span className="text-muted-foreground">Bank Conversion Fee ({details.bankFeePercent.toFixed(2)}%)</span>
-                <span>{formatPkr(details.bankFee)}</span>
-              </li>
+              {details.bankFee > 0 && (
+                <li className="flex justify-between">
+                    <span className="text-muted-foreground">Bank Conversion Fee ({details.bankFeePercent.toFixed(2)}%)</span>
+                    <span>{formatPkr(details.bankFee)}</span>
+                </li>
+              )}
               <li className="flex justify-between">
                 <span className="text-muted-foreground">Withholding Tax (WHT) ({details.whtPercent.toFixed(1)}%)</span>
                 <span>{formatPkr(details.wht)}</span>
@@ -68,5 +70,3 @@ export function TaxBreakdown({ details }: TaxBreakdownProps) {
     </Accordion>
   );
 }
-
-    
