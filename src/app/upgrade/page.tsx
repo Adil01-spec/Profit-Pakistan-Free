@@ -1,52 +1,127 @@
-'use client'
 
-import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
-import { ArrowLeft, ExternalLink } from "lucide-react"
+'use client';
+
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Check, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
+const freeFeatures = [
+  'Basic Profitability Calculations',
+  'Ad Feasibility Analysis (Limited)',
+  'Manual Data Entry',
+  '2 Daily Report Exports',
+  '2 Daily AI Prompts',
+];
 
-function UpgradeHeader() {
-    return (
-      <div className="absolute top-6 left-6 flex items-center gap-2 mb-4">
-        <Link href="/" className="flex items-center text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-5 w-5 mr-1" />
-          <span>Back to Home</span>
-        </Link>
-      </div>
-    );
-}
+const proFeatures = [
+  'All Free Features, plus:',
+  'Advanced Profit & ROAS Dashboards',
+  'Automated Data Sync (Shopify)',
+  'AI-Powered Growth Insights',
+  'Unlimited Report Exports',
+  'Unlimited AI Marketing Prompts',
+  'Priority Support',
+];
 
 export default function UpgradePage() {
-  const router = useRouter();
-  const proAppUrl = "https://profit-pakistan-pro.vercel.app/login";
-
   return (
-    <div className="min-h-screen px-6 py-12 bg-background text-foreground transition-colors duration-300 font-sans relative flex items-center justify-center">
-       <UpgradeHeader />
-      
-      <Card className="max-w-lg mx-auto text-center">
-        <CardHeader>
-            <CardTitle className="text-2xl font-bold">Upgrade to Pro</CardTitle>
-            <CardDescription>Unlock advanced features and take your business to the next level.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-            <p className="text-muted-foreground">
-                You will be redirected to the Profit Pakistan Pro application to complete your upgrade and log in.
-            </p>
-            <Button onClick={() => window.open(proAppUrl, '_blank')} size="lg" className="w-full">
-                Go to Profit Pakistan Pro
-                <ExternalLink className="ml-2 h-4 w-4" />
+    <div className="flex min-h-[calc(100vh-10rem)] w-full flex-col items-center justify-center bg-background p-4 py-12">
+      <div className="mx-auto w-full max-w-5xl">
+        <div className="mb-10 text-center">
+          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+            Find the Right Plan for You
+          </h1>
+          <p className="mt-4 text-lg text-muted-foreground">
+            Start for free, and unlock powerful tools when you're ready to
+            grow.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+          {/* Free Plan Card */}
+          <Card className="flex flex-col border-2">
+            <CardHeader>
+              <CardTitle className="text-2xl">Profit Pakistan (Free)</CardTitle>
+              <CardDescription>
+                Essential tools for starting entrepreneurs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-4">
+              <p className="text-4xl font-bold">
+                ₨ 0 <span className="text-lg font-normal">/ forever</span>
+              </p>
+              <ul className="space-y-3">
+                {freeFeatures.map((feature) => (
+                  <li key={feature} className="flex items-center gap-3">
+                    <Check className="h-5 w-5 text-green-500" />
+                    <span className="text-muted-foreground">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" className="w-full" asChild>
+                <Link href="/">Your Current Plan</Link>
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Pro Plan Card */}
+          <Card className="relative flex flex-col border-2 border-primary shadow-2xl shadow-primary/20">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-sm font-semibold text-primary-foreground">
+              Most Popular
+            </div>
+            <CardHeader>
+              <CardTitle className="text-2xl">Profit Pakistan Pro</CardTitle>
+              <CardDescription>
+                Advanced tools for serious growth.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-4">
+              <p className="text-4xl font-bold">
+                ₨ 799 <span className="text-lg font-normal">/ month</span>
+              </p>
+              <ul className="space-y-3">
+                {proFeatures.map((feature) => (
+                  <li key={feature} className="flex items-center gap-3">
+                    <Check className="h-5 w-5 text-primary" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter className="flex-col items-center gap-2">
+              <Button
+                size="lg"
+                className="w-full cursor-not-allowed bg-gray-300 opacity-70 hover:bg-gray-300 dark:bg-gray-700"
+                disabled
+              >
+                Coming Soon 🚀
+              </Button>
+              <p className="text-center text-xs text-muted-foreground">
+                Profit Pakistan Pro is under final development. Stay tuned for
+                early access!
+              </p>
+            </CardFooter>
+          </Card>
+        </div>
+        <div className="mt-8 text-center">
+            <Button variant="ghost" asChild>
+                <Link href="/">
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to Dashboard
+                </Link>
             </Button>
-        </CardContent>
-        <CardFooter>
-             <p className="text-xs text-muted-foreground text-center w-full">
-                Note: The Pro version handles payments and account creation securely.
-            </p>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
