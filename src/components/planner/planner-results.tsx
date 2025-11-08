@@ -1,8 +1,11 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
 
 // Helper function to safely format numbers
 const formatNumber = (num: any, decimals = 0) => {
@@ -37,9 +40,23 @@ type PlannerResultsProps = {
   };
 };
 
-const MetricDisplay = ({ label, value, subtext }: { label: string; value: string; subtext?: string }) => (
+const MetricDisplay = ({ label, value, subtext, tooltipText }: { label: string; value: string; subtext?: string; tooltipText?: string; }) => (
   <div className="flex flex-col rounded-lg border bg-card p-3 shadow-sm">
-    <p className="text-xs text-muted-foreground">{label}</p>
+    <p className="text-xs text-muted-foreground flex items-center gap-1">
+      {label}
+      {tooltipText && (
+        <TooltipProvider>
+            <Tooltip>
+            <TooltipTrigger asChild>
+                <Info className="h-3 w-3 cursor-pointer" />
+            </TooltipTrigger>
+            <TooltipContent>
+                <p className="max-w-xs">{tooltipText}</p>
+            </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+      )}
+    </p>
     <p className="text-xl font-bold">{value}</p>
     {subtext && <p className="text-xs text-muted-foreground">{subtext}</p>}
   </div>
@@ -85,6 +102,7 @@ export const PlannerResults = ({ results }: PlannerResultsProps) => {
           label="Breakeven ROAS"
           value={`1:${formatNumber(breakevenROAS, 2)}`}
           subtext="Sell Price / Profit"
+          tooltipText="ROAS = Total Revenue ÷ Total Ad Spend. It shows how much you earn for every rupee spent on ads. Higher ROAS = better ad performance."
         />
         <MetricDisplay
           label="Breakeven Units"
@@ -99,3 +117,5 @@ export const PlannerResults = ({ results }: PlannerResultsProps) => {
     </Card>
   );
 };
+
+    

@@ -706,7 +706,19 @@ export default function FeasibilityPage() {
                         name="bank"
                         render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Bank for Payments</FormLabel>
+                            <FormLabel className="flex items-center gap-2">
+                                Bank for Payments
+                                <TooltipProvider>
+                                    <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="max-w-xs">Percentage charged by your bank for processing international Shopify or card transactions.</p>
+                                    </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </FormLabel>
                             <Select
                             onValueChange={(value) => handleBankChange(value)}
                             value={field.value}
@@ -793,7 +805,19 @@ export default function FeasibilityPage() {
                     name="costPerConversion"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Cost per Conversion</FormLabel>
+                        <FormLabel className="flex items-center gap-2">
+                            Cost per Conversion
+                            <TooltipProvider>
+                                <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p className="max-w-xs">Conversion Rate = Number of Orders ÷ Total Clicks × 100. It shows how effectively your ads turn visitors into buyers.</p>
+                                </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </FormLabel>
                         <FormControl>
                             <Input type="number" {...field} />
                         </FormControl>
@@ -814,7 +838,7 @@ export default function FeasibilityPage() {
                                     <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    <p>Percentage of total orders that were returned or refunded.</p>
+                                    <p className="max-w-xs">The percentage of total orders that were returned or canceled. A higher rate reduces your net profit.</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -854,7 +878,19 @@ export default function FeasibilityPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Card>
                       <CardHeader>
-                        <CardTitle>Total Profit</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                          Total Profit
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">Your total profit after deducting all costs (product cost, ad cost, transaction fees, and courier charges) from total revenue.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </CardTitle>
                         <CardDescription>
                           Net profit after all deductions
                         </CardDescription>
@@ -874,7 +910,19 @@ export default function FeasibilityPage() {
 
                     <Card>
                       <CardHeader>
-                        <CardTitle>Return on Ad Spend (ROAS)</CardTitle>
+                        <CardTitle className="flex items-center gap-2">
+                          Return on Ad Spend (ROAS)
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">ROAS = Total Revenue ÷ Total Ad Spend. It shows how much you earn for every rupee spent on ads. Higher ROAS = better ad performance.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </CardTitle>
                         <CardDescription>
                           {watchedAdSpend > 0 ? '(Actual)' : '(Estimated)'}
                         </CardDescription>
@@ -924,7 +972,19 @@ export default function FeasibilityPage() {
 
                     <Card className="col-span-1 md:col-span-2 text-center">
                       <CardHeader>
-                        <CardTitle>Feasibility Verdict</CardTitle>
+                        <CardTitle className="flex items-center justify-center gap-2">
+                          Feasibility Verdict
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">AI-generated insight that evaluates whether your ad campaign or product is financially feasible and how to improve your ROAS.</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <p
@@ -1016,3 +1076,5 @@ export default function FeasibilityPage() {
     </main>
   );
 }
+
+    

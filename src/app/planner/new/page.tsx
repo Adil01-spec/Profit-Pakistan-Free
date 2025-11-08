@@ -456,7 +456,19 @@ export default function PlannerPage() {
                     name="courierRate"
                     render={({ field }) => (
                       <FormItem className="sm:col-span-2">
-                        <FormLabel>Courier Rate (per delivery)</FormLabel>
+                        <FormLabel className="flex items-center gap-2">
+                          Courier Rate (per delivery)
+                            <TooltipProvider>
+                                <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p className="max-w-xs">Average cost per shipment multiplied by total orders. You can adjust this based on your courier’s real rate.</p>
+                                </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -495,3 +507,5 @@ export default function PlannerPage() {
     </main>
   );
 }
+
+    
