@@ -8,6 +8,7 @@ import { Lightbulb, BarChart3, ChevronRight, BrainCircuit } from 'lucide-react';
 import { HistoryList } from '@/components/history/history-list';
 import { useHistory } from '@/hooks/use-history';
 import { AdBanner } from '@/components/ad-banner';
+import { DailyInsight } from '@/components/DailyInsight';
 
 export default function DashboardPage() {
   const { history, loading: historyLoading } = useHistory();
@@ -24,6 +25,8 @@ export default function DashboardPage() {
               Your financial co-pilot for e-commerce in Pakistan. What would you like to analyze today?
             </p>
           </section>
+
+          <DailyInsight />
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-12">
               <Link href="/planner/new" passHref>
