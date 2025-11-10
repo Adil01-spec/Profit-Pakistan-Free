@@ -21,6 +21,7 @@ import { Label } from "./ui/label"
 import { Switch } from "./ui/switch"
 import { ChangeEvent, useRef } from "react"
 import type { HistoryRecord } from "@/lib/types"
+import { getUsdToPkrRate } from "@/lib/currencyRate"
 
 export function SettingsDialog() {
     const { history, setHistory, clearHistory } = useHistory();
@@ -98,6 +99,14 @@ export function SettingsDialog() {
         setSettings(prev => ({...prev, banks: defaultBanks }));
         toast({ title: "Bank Rates Reset", description: "Bank rates have been reset to their default values." });
     };
+    
+    const handleRefreshRate = async () => {
+        toast({ title: "Refreshing rate...", description: "Fetching the latest USD to PKR rate." });
+        await getUsdToPkrRate({ force: true });
+        toast({ title: "✅ Exchange rate refreshed", description: "The latest dollar rate is now active." });
+        // Optionally, trigger a page reload or state update if components need to re-render
+        window.location.reload();
+    };
 
     const handleClearHistory = () => {
         if (confirm("Are you sure you want to delete all saved reports? This action cannot be undone.")) {
@@ -162,6 +171,10 @@ export function SettingsDialog() {
                                 />
                             </div>
                         )}
+                    </div>
+                     <div className="space-y-2">
+                        <Label>Live Data</Label>
+                        <Button onClick={handleRefreshRate} variant="outline" className="w-full justify-start"><RefreshCcw className="mr-2 h-4 w-4" /> 🔄 Refresh Live Dollar Rate</Button>
                     </div>
                     <div className="space-y-2">
                         <Label>Data Management</Label>

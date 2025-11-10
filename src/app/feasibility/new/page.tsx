@@ -45,10 +45,10 @@ import {
 } from '@/components/ui/tooltip';
 import { courierRates } from '@/lib/courier-rates';
 import { AdBanner } from '@/components/ad-banner';
-import { useExchangeRate } from '@/hooks/use-exchange-rate';
 import { format } from 'date-fns';
 import { TaxBreakdown } from '@/components/tax-breakdown';
 import { cn } from '@/lib/utils';
+import { getUsdToPkrRate } from '@/lib/currencyRate';
 
 // Helper function to safely format numbers
 const formatNumber = (num: any, decimals = 0) => {
@@ -115,29 +115,6 @@ type CalculatedValues = (Omit<FeasibilityCheck, 'id' | 'date'> & {
     successfulOrders?: number;
 }) | null;
 
-function ManualRateInput({ onSetRate, lastSavedRate }: { onSetRate: (rate: number) => void; lastSavedRate?: number }) {
-    const [manualRate, setManualRate] = useState(lastSavedRate || 280);
-
-    const handleManualSubmit = () => {
-        if(manualRate > 0) {
-            onSetRate(manualRate);
-        }
-    };
-
-    return (
-        <div className="flex items-center gap-2 mt-2 p-3 rounded-md border border-dashed border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
-            <Input 
-                type="number" 
-                value={manualRate} 
-                onChange={(e) => setManualRate(parseFloat(e.target.value))}
-                placeholder="e.g. 280"
-                className="w-40"
-            />
-            <Button onClick={handleManualSubmit} size="sm">Set Rate</Button>
-            <p className="text-xs text-muted-foreground">Enter USD to PKR rate.</p>
-        </div>
-    );
-}
 
 export default function FeasibilityPage() {
   const router = useRouter();
@@ -147,7 +124,8 @@ export default function FeasibilityPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [calculatedValues, setCalculatedValues] =
     useState<CalculatedValues>(null);
-  const { rate: usdToPkrRate, isLoading: isRateLoading, lastUpdated, showManualInput, setManualRate, lastSavedRate } = useExchangeRate();
+  const [usdToPkrRate, setUsdToPkrRate] = useState<number | null>(null);
+  const [isRateLoading, setIsRateLoading] = useState(true);
   const [effectiveRate, setEffectiveRate] = useState<number | null>(null);
   const [isClient, setIsClient] = useState(false);
   const [taxDetails, setTaxDetails] = useState<TaxDetails | null>(null);
@@ -155,6 +133,13 @@ export default function FeasibilityPage() {
 
   useEffect(() => {
     setIsClient(true);
+    const fetchRate = async () => {
+        setIsRateLoading(true);
+        const rate = await getUsdToPkrRate();
+        setUsdToPkrRate(rate);
+        setIsRateLoading(false);
+    }
+    fetchRate();
   }, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -751,14 +736,9 @@ export default function FeasibilityPage() {
                         </p>
                     ) : null}
 
-                     {isClient && showManualInput && (
-                        <ManualRateInput onSetRate={setManualRate} lastSavedRate={lastSavedRate} />
+                     {isClient && usdToPkrRate && (
+                        <p className="text-xs text-gray-500">💱 Live USD to PKR rate (auto-updated): {usdToPkrRate.toFixed(2)}</p>
                     )}
-
-                    {isClient && lastUpdated && (
-                        <p className="text-xs text-gray-500">💱 Last updated: {format(new Date(lastUpdated), "dd MMM yyyy, h:mm a")}</p>
-                    )}
-
                     </div>
 
                   <FormField
