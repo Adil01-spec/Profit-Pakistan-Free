@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -9,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/
 import { Info, Loader2, TrendingUp, TrendingDown } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { useSettings } from '@/hooks/use-settings';
-import { useDebounce } from 'usehooks-ts';
+import { useDebounce } from '@/hooks/useDebounce';
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 
