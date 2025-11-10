@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { FeasibilityCheck } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Slider } from '../ui/slider';
 import { Label } from '../ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
-import { Info } from 'lucide-react';
+import { Info, Loader2 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { useSettings } from '@/hooks/use-settings';
+import { useDebounce } from 'usehooks-ts';
 
 interface WhatIfSimulatorProps {
   initialRecord: FeasibilityCheck;
@@ -34,56 +35,97 @@ const getStatusVariant = (status: FeasibilityCheck['profitStatus']) => {
     }
 };
 
+interface SimulatedMetrics {
+    netProfit: number;
+    roasMultiplier: number;
+    summary: string;
+    profitStatus: FeasibilityCheck['profitStatus'];
+};
+
 export function WhatIfSimulator({ initialRecord }: WhatIfSimulatorProps) {
   const [settings] = useSettings();
   const [sellingPrice, setSellingPrice] = useState(initialRecord.sellingPrice);
   const [costPerConversion, setCostPerConversion] = useState(initialRecord.costPerConversion || 0);
   const [adBudget, setAdBudget] = useState(initialRecord.adBudget);
-  const [simulatedMetrics, setSimulatedMetrics] = useState({
-    netProfit: 0,
-    roasMultiplier: 0,
-    summary: '',
-    profitStatus: 'Loss' as FeasibilityCheck['profitStatus'],
+  
+  const [simulatedMetrics, setSimulatedMetrics] = useState<SimulatedMetrics>({
+    netProfit: initialRecord.netProfit,
+    roasMultiplier: initialRecord.roasMultiplier,
+    summary: initialRecord.summary,
+    profitStatus: initialRecord.profitStatus,
   });
+  
+  const [previousMetrics, setPreviousMetrics] = useState<SimulatedMetrics>(simulatedMetrics);
+  
+  // Debounce the inputs to avoid excessive API calls
+  const debouncedSellingPrice = useDebounce(sellingPrice, 500);
+  const debouncedCostPerConversion = useDebounce(costPerConversion, 500);
+  const debouncedAdBudget = useDebounce(adBudget, 500);
+
+  const [aiInsight, setAiInsight] = useState<string>('Adjust the sliders to see real-time AI feedback.');
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
+  const getAiInsight = useCallback(async (oldMetrics: SimulatedMetrics, newMetrics: SimulatedMetrics) => {
+    setIsAiLoading(true);
+    try {
+        const response = await fetch('/api/simulator-insight', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                oldPrice: previousMetrics.sellingPrice,
+                oldAdBudget: previousMetrics.adBudget,
+                oldCpc: previousMetrics.costPerConversion,
+                oldProfit: oldMetrics.netProfit.toFixed(0),
+                oldRoas: oldMetrics.roasMultiplier.toFixed(2),
+                newPrice: sellingPrice,
+                newAdBudget: adBudget,
+                newCpc: costPerConversion,
+                newProfit: newMetrics.netProfit.toFixed(0),
+                newRoas: newMetrics.roasMultiplier.toFixed(2),
+            })
+        });
+        if (!response.ok) throw new Error('Failed to fetch insight.');
+        const data = await response.json();
+        setAiInsight(data.insight);
+    } catch (error) {
+        console.error(error);
+        setAiInsight('💡 Could not fetch AI insight. Please try again.');
+    } finally {
+        setIsAiLoading(false);
+    }
+  }, [adBudget, costPerConversion, sellingPrice, previousMetrics]);
+
 
   useEffect(() => {
     if (!settings) return;
-
-    // Re-use calculation logic, similar to the main feasibility page
-    const { 
-        sourcingCost, courierRate, paymentType, shopifyPlan, shopifyMonthlyCost, debitCardTax,
-        returnedOrdersPercent
-    } = initialRecord;
 
     const toNum = (val: any): number => {
       const n = parseFloat(val);
       return isFinite(n) ? n : 0;
     };
     
-    // Use simulated values
-    const currentSellingPrice = toNum(sellingPrice);
-    const currentCostPerConversion = toNum(costPerConversion);
-    const currentAdBudget = toNum(adBudget);
+    // Re-use calculation logic, similar to the main feasibility page
+    const { 
+        sourcingCost, courierRate, paymentType, shopifyPlan, shopifyMonthlyCost, debitCardTax,
+        returnedOrdersPercent
+    } = initialRecord;
     
-    // Existing values from record
+    const currentSellingPrice = toNum(debouncedSellingPrice);
+    const currentCostPerConversion = toNum(debouncedCostPerConversion);
+    const currentAdBudget = toNum(debouncedAdBudget);
+    
     const shopifyMonthlyCostUsd = toNum(shopifyMonthlyCost);
-
-    // This is a simplified version of tax calculation and should be kept in sync with the main form.
-    // For a pure client-side simulator, we use the initial tax details if available or simplified rates.
     const whtPercent = settings.isFiler ? 0.01 : 0.04;
     const fedImpactPercent = 0.16 * 0.25; 
     const provincialTaxPercent = settings.provincialTaxEnabled ? settings.provincialTaxRate / 100 : 0;
-    
-    // NOTE: For simplicity, we are not fetching the live USD rate here. We use a simplified calculation.
-    // The total tax impact on USD transactions (Shopify) and PKR transactions (Ads) is approximated.
     const usdTransactionTaxRate = (debitCardTax / 100) + whtPercent + fedImpactPercent + provincialTaxPercent;
     const pkrTransactionTaxRate = whtPercent + fedImpactPercent + provincialTaxPercent;
 
+    // Using a fixed rate for client-side simulation to avoid async complexity here
     const shopifyCostPkr = shopifyPlan === 'regular' ? (shopifyMonthlyCostUsd * 285) * (1 + usdTransactionTaxRate) : 0;
     const taxedAdBudget = currentAdBudget * (1 + pkrTransactionTaxRate);
     
     const totalMonthlyFixedCosts = shopifyCostPkr + taxedAdBudget;
-
     const fbrTaxRate = paymentType === 'COD' ? 0.02 : 0.01;
     const fbrTax = currentSellingPrice * fbrTaxRate;
     const profitPerSale = currentSellingPrice - sourcingCost - courierRate - fbrTax;
@@ -116,9 +158,24 @@ export function WhatIfSimulator({ initialRecord }: WhatIfSimulatorProps) {
       summary = `You're close to breaking even. A small improvement could make you profitable.`;
     }
     
-    setSimulatedMetrics({ netProfit, roasMultiplier, summary, profitStatus });
+    const newMetrics = { netProfit, roasMultiplier, summary, profitStatus };
+    setSimulatedMetrics(newMetrics);
+    
+    // Fetch AI insight when debounced values change
+    if(JSON.stringify(previousMetrics) !== JSON.stringify(newMetrics)) {
+       getAiInsight(previousMetrics, newMetrics);
+       setPreviousMetrics({
+           ...newMetrics,
+           sellingPrice: currentSellingPrice,
+           adBudget: currentAdBudget,
+           costPerConversion: currentCostPerConversion,
+       } as any);
+    }
 
-  }, [sellingPrice, costPerConversion, adBudget, initialRecord, settings]);
+  }, [
+    debouncedSellingPrice, debouncedCostPerConversion, debouncedAdBudget, 
+    initialRecord, settings, getAiInsight, previousMetrics
+  ]);
 
   return (
     <div className="space-y-6 rounded-md border p-4">
@@ -231,6 +288,17 @@ export function WhatIfSimulator({ initialRecord }: WhatIfSimulatorProps) {
         </CardContent>
       </Card>
 
+      <Card className="bg-accent/10 border-accent/20">
+          <CardHeader className="flex-row items-center gap-2 space-y-0 pb-2">
+            <CardTitle className="text-base">🧠 AI Insight</CardTitle>
+            {isAiLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground transition-opacity duration-300 animate-in fade-in">
+              {aiInsight}
+            </p>
+          </CardContent>
+      </Card>
     </div>
   );
 }
