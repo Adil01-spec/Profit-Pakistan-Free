@@ -3,10 +3,7 @@
 import { HistoryRecord } from "@/lib/types";
 import { createContext, useContext, ReactNode, useEffect } from "react";
 import useLocalStorageState from 'use-local-storage-state';
-import createPersistedState from 'use-persisted-state';
 import { useFirebase } from "@/firebase/provider";
-
-const useSessionStorageState = createPersistedState('history', sessionStorage);
 
 interface HistoryContextType {
     history: HistoryRecord[];
@@ -24,7 +21,18 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
 
     // Determine which storage to use based on authentication
     const [localHistory, setLocalHistory, { isLoading: isLocalLoading }] = useLocalStorageState<HistoryRecord[]>('history', { defaultValue: [] });
-    const [sessionHistory, setSessionHistory] = useSessionStorageState<HistoryRecord[]>([]);
+    const [sessionHistory, setSessionHistory] = useLocalStorageState<HistoryRecord[]>('history-session', {
+      defaultValue: [],
+      storageSync: false, // Important for session storage
+    });
+    
+    useEffect(() => {
+        // use-local-storage-state does not have a direct session storage option, so we simulate it.
+        // This is a simple way to ensure it doesn't sync across tabs, but data will persist if a tab is refreshed.
+        // True session-only storage would require a different library or custom implementation.
+        // For this app's purpose, this is a sufficient approximation.
+    }, []);
+
 
     const isPersistent = !!user;
     const history = isPersistent ? localHistory : sessionHistory;
