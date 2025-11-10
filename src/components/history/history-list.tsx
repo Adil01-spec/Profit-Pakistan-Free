@@ -32,7 +32,7 @@ interface HistoryListProps {
 
 export function HistoryList({ history, loading }: HistoryListProps) {
   const { toast } = useToast();
-  const { removeHistoryRecord } = useHistory();
+  const { removeHistoryRecord, isPersistent } = useHistory();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleDelete = async (reportId: string) => {
@@ -41,7 +41,7 @@ export function HistoryList({ history, loading }: HistoryListProps) {
       removeHistoryRecord(reportId);
       toast({
         title: 'Report Deleted 🗑️',
-        description: 'The report has been permanently removed.',
+        description: 'The report has been removed from this session.',
       });
     } catch (error) {
       console.error('Error deleting report:', error);
@@ -70,10 +70,10 @@ export function HistoryList({ history, loading }: HistoryListProps) {
     return (
       <div className="py-16 text-center">
         <h3 className="text-lg font-medium text-muted-foreground">
-          No reports found.
+          No reports found for this session.
         </h3>
         <p className="text-sm text-muted-foreground">
-          Start by planning a product or checking feasibility.
+          Reports are cleared when you close the tab.
         </p>
         <Button asChild className="mt-4">
           <Link href="/planner/new">Create First Report</Link>
@@ -175,3 +175,4 @@ declare module '@/components/ui/badge' {
         variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning';
     }
 }
+

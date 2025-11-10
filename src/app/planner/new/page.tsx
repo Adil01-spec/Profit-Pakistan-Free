@@ -266,7 +266,7 @@ export default function PlannerPage() {
 
         toast({
           title: 'Report Saved ✅',
-          description: `Your launch plan for "${values.productName}" has been saved.`,
+          description: `Your launch plan for "${values.productName}" has been saved for this session.`,
         });
         router.push(`/history/${resultData.id}`);
     } catch (err) {

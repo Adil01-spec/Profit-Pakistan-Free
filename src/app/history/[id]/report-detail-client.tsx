@@ -19,7 +19,7 @@ export function ReportDetailClient({ id }: { id: string }) {
       if (foundRecord) {
         setRecord(foundRecord);
       } else {
-        // If not found, it might be an old link. Go back to history list.
+        // If not found, it might be an old link from a cleared session.
         router.push('/history');
       }
     }

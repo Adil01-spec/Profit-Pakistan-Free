@@ -1,21 +1,41 @@
+
 'use client';
 import { HistoryRecord } from "@/lib/types";
-import { createContext, useContext, ReactNode } from "react";
+import { createContext, useContext, ReactNode, useEffect } from "react";
 import useLocalStorageState from 'use-local-storage-state';
+import createPersistedState from 'use-persisted-state';
+import { useFirebase } from "@/firebase/provider";
+
+const useSessionStorageState = createPersistedState('history', sessionStorage);
 
 interface HistoryContextType {
     history: HistoryRecord[];
-    setHistory: (history: HistoryRecord[] | ((prev: HistoryRecord[]) => HistoryRecord[])) => void;
     addHistoryRecord: (record: HistoryRecord) => void;
     removeHistoryRecord: (recordId: string) => void;
     clearHistory: () => void;
     loading: boolean;
+    isPersistent: boolean;
 }
 
 const HistoryContext = createContext<HistoryContextType | undefined>(undefined);
 
 export function HistoryProvider({ children }: { children: ReactNode }) {
-    const [history, setHistory, { isLoading }] = useLocalStorageState<HistoryRecord[]>('history', { defaultValue: [] });
+    const { user, isUserLoading } = useFirebase();
+
+    // Determine which storage to use based on authentication
+    const [localHistory, setLocalHistory, { isLoading: isLocalLoading }] = useLocalStorageState<HistoryRecord[]>('history', { defaultValue: [] });
+    const [sessionHistory, setSessionHistory] = useSessionStorageState<HistoryRecord[]>([]);
+
+    const isPersistent = !!user;
+    const history = isPersistent ? localHistory : sessionHistory;
+    
+    const setHistory = (update: HistoryRecord[] | ((prev: HistoryRecord[]) => HistoryRecord[])) => {
+        if (isPersistent) {
+            setLocalHistory(update as any);
+        } else {
+            setSessionHistory(update as any);
+        }
+    };
 
     const addHistoryRecord = (record: HistoryRecord) => {
         setHistory(prev => [record, ...(prev ?? [])]);
@@ -29,7 +49,14 @@ export function HistoryProvider({ children }: { children: ReactNode }) {
         setHistory([]);
     };
     
-    const value = { history: history ?? [], setHistory, addHistoryRecord, removeHistoryRecord, clearHistory, loading: isLoading };
+    const value = { 
+        history: history ?? [], 
+        addHistoryRecord, 
+        removeHistoryRecord, 
+        clearHistory, 
+        loading: isUserLoading || isLocalLoading,
+        isPersistent
+    };
 
     return <HistoryContext.Provider value={value}>{children}</HistoryContext.Provider>;
 }

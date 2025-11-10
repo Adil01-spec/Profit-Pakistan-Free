@@ -45,7 +45,6 @@ import {
 } from '@/components/ui/tooltip';
 import { courierRates } from '@/lib/courier-rates';
 import { AdBanner } from '@/components/ad-banner';
-import { format } from 'date-fns';
 import { TaxBreakdown } from '@/components/tax-breakdown';
 import { cn } from '@/lib/utils';
 import { getUsdToPkrRate } from '@/lib/currencyRate';
@@ -456,7 +455,7 @@ export default function FeasibilityPage() {
         addHistoryRecord(resultData);
         toast({
           title: 'Report Saved ✅',
-          description: `Your feasibility check for "${values.productName}" has been saved.`,
+          description: `Your feasibility check for "${values.productName}" has been saved for this session.`,
         });
         router.push(`/history/${resultData.id}`);
     } catch(err) {
