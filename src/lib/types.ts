@@ -1,5 +1,4 @@
 
-
 export type ProfitStatus = 'Profitable' | 'Near Breakeven' | 'Loss';
 export type PaymentType = 'COD' | 'Online';
 
@@ -56,6 +55,8 @@ export type FeasibilityCheck = BaseAnalysis & {
   sellingPrice: number;
   sourcingCost: number;
   adDurationDays?: number;
+  ordersReceived?: number;
+  returnedOrdersCount?: number;
   returnedOrdersPercent?: number;
 
   // Calculated
@@ -88,3 +89,5 @@ export interface AppSettings {
     provincialTaxEnabled: boolean;
     provincialTaxRate: number;
 }
+
+    

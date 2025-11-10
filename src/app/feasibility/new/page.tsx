@@ -89,7 +89,8 @@ const formSchema = z
     costPerConversion: z.coerce.number().optional(),
     paymentType: z.enum(['COD', 'Online']),
     adDurationDays: z.coerce.number().optional(),
-    returnedOrdersPercent: z.coerce.number().min(0).max(100).optional(),
+    ordersReceived: z.coerce.number().optional(),
+    returnedOrdersCount: z.coerce.number().min(0).optional(),
   })
   .refine(
     (data) =>
@@ -113,6 +114,7 @@ type CalculatedValues = (Omit<FeasibilityCheck, 'id' | 'date'> & {
     totalOrders?: number;
     returnedOrders?: number;
     successfulOrders?: number;
+    isEstimate: boolean;
 }) | null;
 
 
@@ -161,7 +163,8 @@ export default function FeasibilityPage() {
         costPerConversion: '' as any, // Use empty string for controlled input
         paymentType: 'COD',
         adDurationDays: '' as any, // Use empty string for controlled input
-        returnedOrdersPercent: 0,
+        ordersReceived: '' as any,
+        returnedOrdersCount: 0,
     },
   });
 
@@ -186,7 +189,8 @@ export default function FeasibilityPage() {
             costPerConversion: '' as any,
             paymentType: 'COD',
             adDurationDays: '' as any,
-            returnedOrdersPercent: 0,
+            ordersReceived: '' as any,
+            returnedOrdersCount: 0,
         });
     }
   }, [isPersistent, settings, reset]);
@@ -204,7 +208,8 @@ export default function FeasibilityPage() {
   const watchedBank = watch('bank');
   const watchedDebitCardTax = watch('debitCardTax');
   const watchedAdDurationDays = watch('adDurationDays');
-  const watchedReturnedOrdersPercent = watch('returnedOrdersPercent');
+  const watchedOrdersReceived = watch('ordersReceived');
+  const watchedReturnedOrdersCount = watch('returnedOrdersCount');
 
   useEffect(() => {
     if (usdToPkrRate && watchedDebitCardTax !== undefined && settings) {
@@ -237,7 +242,8 @@ export default function FeasibilityPage() {
     const courierRate = toNum(watchedCourierRate);
     const shopifyMonthlyCostUsd = toNum(watchedShopifyMonthlyCost);
     const paymentType = watchedPaymentType;
-    const returnedOrdersPercent = toNum(watchedReturnedOrdersPercent) || 0;
+    const ordersReceived = toNum(watchedOrdersReceived);
+    const returnedOrdersCount = toNum(watchedReturnedOrdersCount) || 0;
     
     if (sellingPrice <= 0 || sellingPrice <= sourcingCost || !effectiveRate || !settings || !usdToPkrRate) {
       setCalculatedValues(null);
@@ -286,10 +292,15 @@ export default function FeasibilityPage() {
         ? Math.ceil(totalMonthlyFixedCosts / profitPerSale)
         : 0;
 
-    const totalOrders = costPerConversion > 0 ? adBudget / costPerConversion : 0;
-    const returnRate = returnedOrdersPercent / 100;
-    const returnedOrders = totalOrders * returnRate;
-    const successfulOrders = totalOrders - returnedOrders;
+    // Use actual orders if provided, otherwise estimate
+    const isEstimate = ordersReceived <= 0;
+    const totalOrders = isEstimate
+        ? (costPerConversion > 0 ? adBudget / costPerConversion : 0)
+        : ordersReceived;
+    
+    const returnedOrders = returnedOrdersCount;
+    const successfulOrders = Math.max(0, totalOrders - returnedOrders);
+    const returnedOrdersPercent = totalOrders > 0 ? (returnedOrders / totalOrders) * 100 : 0;
 
     const totalRevenue = successfulOrders * sellingPrice;
     const totalSourcingCost = successfulOrders * sourcingCost;
@@ -365,6 +376,8 @@ export default function FeasibilityPage() {
         totalOrders,
         returnedOrders,
         successfulOrders,
+        isEstimate,
+        returnedOrdersPercent, // Store calculated percent
     });
 
   }, [
@@ -383,7 +396,8 @@ export default function FeasibilityPage() {
     watchedDebitCardTax,
     form,
     settings,
-    watchedReturnedOrdersPercent,
+    watchedOrdersReceived,
+    watchedReturnedOrdersCount,
   ]);
 
 
@@ -763,7 +777,7 @@ export default function FeasibilityPage() {
                         Advertising & ROAS
                     </CardTitle>
                     <CardDescription>
-                      If you don’t know your total ad revenue, we’ll estimate it using your daily orders and ad duration.
+                      Enter your actual orders for the most accurate calculation, or let us estimate based on your ad spend.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -793,7 +807,7 @@ export default function FeasibilityPage() {
                                     <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p className="max-w-xs">Conversion Rate = Number of Orders ÷ Total Clicks × 100. It shows how effectively your ads turn visitors into buyers.</p>
+                                    <p className="max-w-xs">The average cost to acquire one customer from your ad campaigns. Used to estimate order volume if actual orders are not provided.</p>
                                 </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
@@ -805,32 +819,58 @@ export default function FeasibilityPage() {
                         </FormItem>
                     )}
                     />
-                    <FormField
+                     <FormField
                       control={form.control}
-                      name="returnedOrdersPercent"
+                      name="ordersReceived"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="flex items-center gap-2">
-                              Returned Orders (%)
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">The percentage of total orders that were returned or canceled. A higher rate reduces your net profit.</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                          </FormLabel>
+                           <FormLabel className="flex items-center gap-2">
+                                Orders Received (Optional)
+                                <TooltipProvider>
+                                    <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="max-w-xs">Enter total orders received in the given time frame. Leave empty to let the app estimate orders automatically.</p>
+                                    </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </FormLabel>
                           <FormControl>
                             <Input 
                                 type="number" 
                                 {...field}
-                                placeholder="e.g. 10"
-                                className={cn({
-                                    'border-red-500 focus-visible:ring-red-500': (field.value || 0) > 15
-                                })}
+                                placeholder="e.g. 150"
+                             />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="returnedOrdersCount"
+                      render={({ field }) => (
+                        <FormItem>
+                           <FormLabel className="flex items-center gap-2">
+                                Number of Return Orders
+                                <TooltipProvider>
+                                    <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                        <p className="max-w-xs">Enter how many orders were returned during the same period.</p>
+                                    </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            </FormLabel>
+                          <FormControl>
+                            <Input 
+                                type="number" 
+                                {...field}
+                                placeholder="e.g. 15"
                              />
                           </FormControl>
                           <FormMessage />
@@ -841,7 +881,7 @@ export default function FeasibilityPage() {
                         control={form.control}
                         name="adDurationDays"
                         render={({ field }) => (
-                            <FormItem>
+                            <FormItem className='hidden'>
                             <FormLabel>Ad Duration (Days)</FormLabel>
                             <FormControl>
                                 <Input type="number" {...field} />
@@ -1010,6 +1050,12 @@ export default function FeasibilityPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle>📦 Order Summary</CardTitle>
+                             <CardDescription>
+                                {calculatedValues.isEstimate 
+                                ? 'Based on estimated order volume.'
+                                : 'Based on your actual order data.'
+                                }
+                            </CardDescription>
                         </CardHeader>
                         <CardContent className="text-center space-y-2">
                              <div className="grid grid-cols-3 gap-4">
@@ -1019,7 +1065,7 @@ export default function FeasibilityPage() {
                                 </div>
                                  <div>
                                     <p className="text-sm text-muted-foreground">Returned Orders</p>
-                                    <p className="font-bold text-lg">{formatNumber(calculatedValues.returnedOrders)} ({watchedReturnedOrdersPercent}%)</p>
+                                    <p className="font-bold text-lg">{formatNumber(calculatedValues.returnedOrders)} ({formatNumber(calculatedValues.returnedOrdersPercent, 1)}%)</p>
                                 </div>
                                  <div>
                                     <p className="text-sm text-muted-foreground">Successful Orders</p>
