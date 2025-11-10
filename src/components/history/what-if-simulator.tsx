@@ -46,10 +46,11 @@ interface SimulatedMetrics {
 };
 
 const ComparisonMetric = ({ label, value, originalValue }: { label: string, value: number, originalValue: number }) => {
-    const change = ((value - originalValue) / (originalValue || 1)) * 100;
+    const change = originalValue !== 0 ? ((value - originalValue) / Math.abs(originalValue)) * 100 : (value > 0 ? 100 : 0);
     const isIncrease = change > 0;
     const isDecrease = change < 0;
-    const isNeutral = change === 0;
+    const isNeutral = Math.abs(change) < 0.1;
+
 
     const formattedValue = label === 'ROAS' ? `${value.toFixed(2)}x` : formatPkr(value);
     
@@ -68,7 +69,7 @@ const ComparisonMetric = ({ label, value, originalValue }: { label: string, valu
             )}>
                 {isIncrease && <TrendingUp className="h-4 w-4 mr-1" />}
                 {isDecrease && <TrendingDown className="h-4 w-4 mr-1" />}
-                {isNeutral ? 'No Change' : `${change.toFixed(1)}%`}
+                {isNeutral ? 'No Change' : `${isIncrease ? '+' : ''}${change.toFixed(1)}%`}
             </div>
         </div>
     );
@@ -83,7 +84,7 @@ export function WhatIfSimulator({ initialRecord }: WhatIfSimulatorProps) {
   
   const originalMetrics = useMemo(() => ({
     netProfit: initialRecord.netProfit,
-    roasMultiplier: initialRecord.roasMultiplier,
+    roasMultiplier: initialRecord.roasMultiplier || 0,
     totalRevenue: (initialRecord.successfulOrders || 0) * initialRecord.sellingPrice,
     sellingPrice: initialRecord.sellingPrice,
     adBudget: initialRecord.adBudget,
