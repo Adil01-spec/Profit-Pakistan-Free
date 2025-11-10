@@ -13,8 +13,8 @@ import { FirebaseProvider } from '@/firebase/provider';
 import { UsageProvider } from '@/hooks/use-usage';
 
 export const metadata: Metadata = {
-  title: 'Profit Pakistan (Free)',
-  description: 'A free profitability and ROAS calculator designed for Pakistani entrepreneurs.',
+  title: 'Profit Pakistan',
+  description: 'A profitability and ROAS calculator designed for Pakistani entrepreneurs.',
 };
 
 function ClientWrapper({ children }: { children: ReactNode }) {

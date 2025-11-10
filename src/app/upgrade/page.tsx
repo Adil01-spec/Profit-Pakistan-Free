@@ -49,7 +49,7 @@ export default function UpgradePage() {
           {/* Free Plan Card */}
           <Card className="flex flex-col border-2">
             <CardHeader>
-              <CardTitle className="text-2xl">Profit Pakistan (Free)</CardTitle>
+              <CardTitle className="text-2xl">Profit Pakistan</CardTitle>
               <CardDescription>
                 Essential tools for starting entrepreneurs.
               </CardDescription>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -153,7 +154,7 @@ const handleDownloadPdf = (record: LaunchPlan | FeasibilityCheck, toast: any) =>
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(primaryColor);
         doc.setFontSize(20);
-        doc.text("Profit Pakistan (Free)", 105, 20, { align: 'center' });
+        doc.text("Profit Pakistan", 105, 20, { align: 'center' });
         
         doc.setFontSize(14);
         doc.setTextColor(textColor);
@@ -311,10 +312,10 @@ const FeasibilityResult = ({ record }: { record: FeasibilityCheck }) => (
                 <ul className="divide-y text-sm">
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Sourcing Cost</span><span>PKR {record.sourcingCost.toLocaleString()}</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Selling Price</span><span>PKR {record.sellingPrice.toLocaleString()}</span></li>
-                    <li className="flex justify-between py-2"><span className="text-muted-foreground">Shopify Plan</span><span className="capitalize">{record.shopifyPlan} (${record.shopifyMonthlyCost})</span></li>
+                    <li className="flex justify-between py-2"><span className="text-muted-foreground">Shopify Plan</span><span className="capitalize">{record.shopifyPlan} ($${record.shopifyMonthlyCost})</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Payment Type</span><span>{record.paymentType}</span></li>
                      <li className="flex justify-between py-2"><span className="text-muted-foreground">FBR Tax (per unit)</span><span>PKR {record.fbrTax.toLocaleString()}</span></li>
-                    <li className="flex justify-between py-2"><span className="text-muted-foreground">Bank</span><span>{record.bank} ({record.debitCardTax}%)</span></li>
+                    <li className="flex justify-between py-2"><span className="text-muted-foreground">Bank</span><span>{record.bank} (${record.debitCardTax}%)</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Monthly Ad Budget</span><span>PKR {record.adBudget.toLocaleString()}</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Returned Orders</span><span>{record.returnedOrdersPercent || 0}%</span></li>
                     <li className="flex justify-between py-2"><span className="text-muted-foreground">Cost per Conversion</span><span>PKR {(record.costPerConversion || 0).toLocaleString()}</span></li>
