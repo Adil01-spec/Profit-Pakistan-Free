@@ -76,12 +76,43 @@ const ComparisonMetric = ({ label, value, originalValue }: { label: string, valu
     );
 };
 
+const AdSenseBlock = () => {
+    useEffect(() => {
+        try {
+            ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
+        } catch (e) {
+            console.error("AdSense load error", e);
+        }
+    }, []);
+
+    return (
+        <div className="flex flex-col items-center mt-6 mb-2">
+            <p className="text-center text-xs text-gray-400 mb-2">Advertisement</p>
+            <div className="flex justify-center w-full">
+                <ins
+                    className="adsbygoogle"
+                    style={{ display: "block", width: "100%", maxWidth: "728px", height: "90px" }}
+                    data-ad-client="ca-pub-XXXXXXXXXXXXXXX"
+                    data-ad-slot="YYYYYYYYYY"
+                    data-ad-format="auto"
+                    data-full-width-responsive="true"
+                ></ins>
+            </div>
+        </div>
+    );
+};
+
 
 export function WhatIfSimulator({ initialRecord }: WhatIfSimulatorProps) {
   const [settings] = useSettings();
   const [sellingPrice, setSellingPrice] = useState(initialRecord.sellingPrice);
   const [costPerConversion, setCostPerConversion] = useState(initialRecord.costPerConversion || 0);
   const [adBudget, setAdBudget] = useState(initialRecord.adBudget);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   
   const originalMetrics = useMemo(() => ({
     netProfit: initialRecord.netProfit,
@@ -355,7 +386,12 @@ export function WhatIfSimulator({ initialRecord }: WhatIfSimulatorProps) {
                 </p>
             </CardContent>
         </Card>
+
+        {isClient && <AdSenseBlock />}
+
       </div>
     </div>
   );
 }
+
+    
