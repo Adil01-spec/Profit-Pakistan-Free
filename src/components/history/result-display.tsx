@@ -25,6 +25,8 @@ import {
 import { useUsage } from "@/hooks/use-usage";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { TaxBreakdown } from "../tax-breakdown";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
+import { WhatIfSimulator } from "./what-if-simulator";
 
 
 // Extend the jsPDF interface to include autoTable
@@ -321,6 +323,16 @@ const FeasibilityResult = ({ record }: { record: FeasibilityCheck }) => (
                 </ul>
             </CardContent>
         </Card>
+        
+        <Accordion type="single" collapsible className="w-full">
+            <AccordionItem value="what-if">
+                <AccordionTrigger className="text-lg font-semibold">💡 What-If Simulator: Try Different Scenarios</AccordionTrigger>
+                <AccordionContent>
+                    <WhatIfSimulator initialRecord={record} />
+                </AccordionContent>
+            </AccordionItem>
+        </Accordion>
+
     </CardContent>
     </>
 );
