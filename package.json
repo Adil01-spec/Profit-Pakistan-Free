@@ -8,11 +8,10 @@
     "genkit:dev": "echo 'Genkit is no longer in use'",
     "genkit:watch": "echo 'Genkit is no longer in use'",
     "build": "next build",
-    "export": "next export",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "predeploy": "npm run build && npm run export",
+    "predeploy": "npm run build",
     "deploy": "firebase deploy"
   },
   "dependencies": {
