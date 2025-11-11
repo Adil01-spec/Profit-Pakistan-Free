@@ -4,38 +4,33 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions to check user roles and ownership.
+    // Helper function to check if the user is the owner of the document.
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    function isAdmin() {
-      // Admins have a custom claim `admin` set to true.
-      return request.auth != null && request.auth.token.admin == true;
-    }
-
     /**
-     * @description User profiles are only accessible by their owner or an admin.
+     * @description User profiles are only accessible by their owner.
      * @path /users/{userId}
      */
     match /users/{userId} {
-      allow read, write: if isOwner(userId) || isAdmin();
+      allow read, write: if isOwner(userId);
     }
 
     /**
-     * @description User-specific history records are only accessible by their owner or an admin.
+     * @description User-specific history records are only accessible by their owner.
      * @path /users/{userId}/history/{recordId}
      */
     match /users/{userId}/history/{recordId} {
-      allow read, write: if isOwner(userId) || isAdmin();
+      allow read, write: if isOwner(userId);
     }
 
     /**
-     * @description Free usage tracking is only accessible by the user or an admin.
+     * @description Free usage tracking is only accessible by the user.
      * @path /free_usage/{userId}
      */
     match /free_usage/{userId} {
-      allow read, write: if isOwner(userId) || isAdmin();
+      allow read, write: if isOwner(userId);
     }
     
     /**
@@ -47,21 +42,21 @@ service cloud.firestore {
     }
 
     /**
-     * @description Pricing plans are publicly readable.
+     * @description Pricing plans are publicly readable. No client writes allowed.
      * @path /plans/{planId}
      */
     match /plans/{planId} {
       allow get, list: if true;
-      allow write: if isAdmin();
+      allow write: if false;
     }
 
     /**
-     * @description Ad configurations are publicly readable.
+     * @description Ad configurations are publicly readable. No client writes allowed.
      * @path /ads/{adId}
      */
     match /ads/{adId} {
       allow get, list: if true;
-      allow write: if isAdmin();
+      allow write: if false;
     }
   }
 }
