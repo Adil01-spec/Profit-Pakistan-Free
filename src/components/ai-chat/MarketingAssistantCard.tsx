@@ -55,8 +55,8 @@ export function MarketingAssistantCard() {
     }
 
     const userMessage: Message = { role: 'user', content: input.trim() };
-    const newMessagesForApi = [...messages, userMessage];
-    setMessages(newMessagesForApi);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setInput('');
     setIsLoading(true);
 
@@ -67,8 +67,8 @@ export function MarketingAssistantCard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        // Send the message history for context
-        body: JSON.stringify({ messages: newMessagesForApi.slice(1) }),
+        // Send the message history for context, excluding the initial system prompt
+        body: JSON.stringify({ messages: newMessages.slice(1) }),
       });
 
       const data = await response.json();
@@ -86,7 +86,7 @@ export function MarketingAssistantCard() {
         title: '⚠️ Something went wrong.',
         description: error.message || 'Please try again later.',
       });
-      // Rollback the user message on error
+      // On error, remove the user's message to allow them to try again.
       setMessages(prev => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
@@ -97,7 +97,7 @@ export function MarketingAssistantCard() {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages, isLoading]);
   
   const handleWatchAd = () => {
     setIsAdLoading(true);
@@ -189,7 +189,7 @@ export function MarketingAssistantCard() {
                                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                                 placeholder={canSendPrompt ? "Ask about marketing, ads..." : "Daily AI limit reached"}
                                 className="flex-1 pr-10"
-                                disabled={isLoading || !canSendPrompt}
+                                disabled={isLoading || (!canSendPrompt && !isLoading)}
                             />
                         </TooltipTrigger>
                         {!canSendPrompt && (
