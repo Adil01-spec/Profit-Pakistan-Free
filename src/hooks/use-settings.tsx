@@ -18,8 +18,10 @@ const defaultSettings: AppSettings = {
 };
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-    const [settings, setSettings, { isPersistent }] = useLocalStorageState<AppSettings>('settings', {
-        defaultValue: defaultSettings
+    // In the free app, settings are stored in session storage.
+    const [settings, setSettings, { isPersistent }] = useLocalStorageState<AppSettings>('settings-session', {
+        defaultValue: defaultSettings,
+        storageSync: false,
     });
 
     const value: [AppSettings, (newValue: AppSettings | ((prevState: AppSettings) => AppSettings)) => void, {isPersistent: boolean;}] = [settings ?? defaultSettings, setSettings, { isPersistent }];
@@ -34,5 +36,3 @@ export const useSettings = () => {
   }
   return context;
 };
-
-    

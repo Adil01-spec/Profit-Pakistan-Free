@@ -1,9 +1,8 @@
 
 'use client';
 import { HistoryRecord } from "@/lib/types";
-import { createContext, useContext, ReactNode, useEffect } from "react";
+import { createContext, useContext, ReactNode } from "react";
 import useLocalStorageState from 'use-local-storage-state';
-import { useFirebase } from "@/firebase/provider";
 
 interface HistoryContextType {
     history: HistoryRecord[];
@@ -17,53 +16,32 @@ interface HistoryContextType {
 const HistoryContext = createContext<HistoryContextType | undefined>(undefined);
 
 export function HistoryProvider({ children }: { children: ReactNode }) {
-    const { user, isUserLoading } = useFirebase();
-
-    // Determine which storage to use based on authentication
-    const [localHistory, setLocalHistory, { isLoading: isLocalLoading }] = useLocalStorageState<HistoryRecord[]>('history', { defaultValue: [] });
-    const [sessionHistory, setSessionHistory] = useLocalStorageState<HistoryRecord[]>('history-session', {
+    // App works without auth, so we only use session storage.
+    const [sessionHistory, setSessionHistory, { isLoading }] = useLocalStorageState<HistoryRecord[]>('history-session', {
       defaultValue: [],
-      storageSync: false, // Important for session storage
+      storageSync: false, // This ensures it doesn't sync across tabs, acting like session storage.
     });
-    
-    useEffect(() => {
-        // use-local-storage-state does not have a direct session storage option, so we simulate it.
-        // This is a simple way to ensure it doesn't sync across tabs, but data will persist if a tab is refreshed.
-        // True session-only storage would require a different library or custom implementation.
-        // For this app's purpose, this is a sufficient approximation.
-    }, []);
-
-
-    const isPersistent = !!user;
-    const history = isPersistent ? localHistory : sessionHistory;
-    
-    const setHistory = (update: HistoryRecord[] | ((prev: HistoryRecord[]) => HistoryRecord[])) => {
-        if (isPersistent) {
-            setLocalHistory(update as any);
-        } else {
-            setSessionHistory(update as any);
-        }
-    };
 
     const addHistoryRecord = (record: HistoryRecord) => {
-        setHistory(prev => [record, ...(prev ?? [])]);
+        setSessionHistory(prev => [record, ...(prev ?? [])]);
     };
 
     const removeHistoryRecord = (recordId: string) => {
-        setHistory(prev => (prev ?? []).filter(r => r.id !== recordId));
+        setSessionHistory(prev => (prev ?? []).filter(r => r.id !== recordId));
     };
 
     const clearHistory = () => {
-        setHistory([]);
+        setSessionHistory([]);
     };
     
+    // isPersistent is always false in the free, unauthenticated version.
     const value = { 
-        history: history ?? [], 
+        history: sessionHistory ?? [], 
         addHistoryRecord, 
         removeHistoryRecord, 
         clearHistory, 
-        loading: isUserLoading || isLocalLoading,
-        isPersistent
+        loading: isLoading,
+        isPersistent: false 
     };
 
     return <HistoryContext.Provider value={value}>{children}</HistoryContext.Provider>;

@@ -175,4 +175,3 @@ declare module '@/components/ui/badge' {
         variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning';
     }
 }
-

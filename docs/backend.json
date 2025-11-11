@@ -1,112 +1,6 @@
 
 {
   "entities": {
-    "UserProfile": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "UserProfile",
-      "type": "object",
-      "description": "Represents a user profile in the Profit Pakistan Pro application.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the UserProfile entity."
-        },
-        "email": {
-          "type": "string",
-          "description": "User's email address.",
-          "format": "email"
-        },
-        "displayName": {
-          "type": "string",
-          "description": "User's display name."
-        },
-        "photoURL": {
-          "type": "string",
-          "description": "URL of the user's profile photo, if available.",
-          "format": "uri"
-        }
-      },
-      "required": [
-        "id"
-      ]
-    },
-    "AnalysisRecord": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AnalysisRecord",
-      "type": "object",
-      "description": "Represents a single analysis record (either product launch plan or ad feasibility check) associated with a user.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the AnalysisRecord entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to UserProfile. (Relationship: UserProfile 1:N AnalysisRecord)"
-        },
-        "productName": {
-          "type": "string",
-          "description": "Name of the product being analyzed."
-        },
-        "category": {
-          "type": "string",
-          "description": "Category of the product."
-        },
-        "date": {
-          "type": "string",
-          "description": "Date and time when the analysis was performed.",
-          "format": "date-time"
-        },
-        "type": {
-          "type": "string",
-          "description": "Type of analysis: 'Launch' or 'Feasibility'."
-        },
-        "results": {
-          "type": "string",
-          "description": "The JSON results of the analysis."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "productName",
-        "category",
-        "date",
-        "type",
-        "results"
-      ]
-    },
-    "FreeUsage": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FreeUsage",
-      "type": "object",
-      "description": "Tracks the free usage of report exports and AI prompts for a user within a 24-hour period.",
-      "properties": {
-        "userId": {
-          "type": "string",
-          "description": "Unique identifier of the user or device."
-        },
-        "lastReset": {
-          "type": "string",
-          "description": "Timestamp of the last usage counter reset.",
-          "format": "date-time"
-        },
-        "exportsUsed": {
-          "type": "number",
-          "description": "Number of report exports used in the current period."
-        },
-        "aiPromptsUsed": {
-          "type": "number",
-          "description": "Number of AI prompts used in the current period."
-        }
-      },
-      "required": [
-        "userId",
-        "lastReset",
-        "exportsUsed",
-        "aiPromptsUsed"
-      ]
-    },
     "Plan": {
       "title": "Plan",
       "description": "Describes a pricing plan for the application.",
@@ -136,24 +30,9 @@
     }
   },
   "auth": {
-    "providers": [
-      "anonymous",
-      "email"
-    ]
+    "providers": []
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": { "$ref": "#/entities/UserProfile" },
-      "description": "Stores user profile information. Accessible only by the user."
-    },
-    "/users/{userId}/history/{recordId}": {
-      "schema": { "$ref": "#/entities/AnalysisRecord" },
-      "description": "Stores analysis records for each user."
-    },
-    "/free_usage/{userId}": {
-      "schema": { "$ref": "#/entities/FreeUsage" },
-      "description": "Tracks free usage for each user."
-    },
     "/plans/{planId}": {
         "schema": { "$ref": "#/entities/Plan" },
         "description": "Stores details about the pricing plans, which are publicly readable."

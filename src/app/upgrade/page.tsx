@@ -10,15 +10,15 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Check, ArrowLeft } from 'lucide-react';
+import { Check } from 'lucide-react';
 import Link from 'next/link';
 
 const freeFeatures = [
   'Basic Profitability Calculations',
-  'Ad Feasibility Analysis (Limited)',
+  'Ad Feasibility Analysis',
   'Manual Data Entry',
-  '2 Daily Report Exports',
-  '2 Daily AI Prompts',
+  '5 Daily Report Exports',
+  '10 Daily AI Prompts',
 ];
 
 const proFeatures = [
@@ -112,14 +112,6 @@ export default function UpgradePage() {
               </p>
             </CardFooter>
           </Card>
-        </div>
-        <div className="mt-8 text-center">
-            <Button variant="ghost" asChild>
-                <Link href="/">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    Back to Dashboard
-                </Link>
-            </Button>
         </div>
       </div>
     </div>
