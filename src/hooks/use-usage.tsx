@@ -4,8 +4,8 @@ import { createContext, useContext, ReactNode, useState, useEffect, useCallback 
 import useLocalStorageState from 'use-local-storage-state';
 import { v4 as uuidv4 } from 'uuid';
 
-const DAILY_EXPORT_LIMIT = 2; // Keep free limits
-const DAILY_AI_LIMIT = 2;     // Limit to 2 free prompts initially
+const DAILY_EXPORT_LIMIT = 2; // Free users get 2 daily downloads
+const DAILY_AI_LIMIT = 2;     // Free users get 2 daily prompts
 const TWENTY_FOUR_HOURS_IN_MS = 24 * 60 * 60 * 1000;
 
 type Feature = 'export' | 'ai';
