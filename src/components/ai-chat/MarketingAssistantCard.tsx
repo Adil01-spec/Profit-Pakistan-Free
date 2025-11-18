@@ -101,26 +101,21 @@ export function MarketingAssistantCard() {
   
   const handleWatchAd = () => {
     setIsAdLoading(true);
+    // Simulate watching an ad
     setTimeout(() => {
         grantUsage('ai', 1);
         setIsAdLoading(false);
         setShowAdPrompt(false);
         toast({
-            title: "✅ Access unlocked!",
+            title: "✅ Prompt unlocked!",
             description: "You've earned 1 more AI prompt.",
         });
     }, 1500);
   };
 
   const onAdPromptOpenChange = (open: boolean) => {
-    if (!open) {
+    if (!open && !isAdLoading) {
         setShowAdPrompt(false);
-        if (!isAdLoading) {
-             toast({
-                variant: 'destructive',
-                title: '⚠️ Watch an ad to send more messages.',
-            });
-        }
     }
   }
 
@@ -189,12 +184,12 @@ export function MarketingAssistantCard() {
                                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                                 placeholder={canSendPrompt ? "Ask about marketing, ads..." : "Daily AI limit reached"}
                                 className="flex-1 pr-10"
-                                disabled={isLoading || (!canSendPrompt && !isLoading)}
+                                disabled={isLoading}
                             />
                         </TooltipTrigger>
                         {!canSendPrompt && (
                              <TooltipContent>
-                                <p>Watch ad to unlock.</p>
+                                <p>You've reached your daily limit. Click send to see options.</p>
                             </TooltipContent>
                         )}
                     </Tooltip>
@@ -206,7 +201,7 @@ export function MarketingAssistantCard() {
                 </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              Free users get {usageState.ai.limit} AI prompts daily. {promptsLeft > 0 ? `${promptsLeft} left.` : "Watch ads to unlock more."}
+              You have {promptsLeft > 0 ? `${promptsLeft} free AI prompt${promptsLeft > 1 ? 's' : ''}` : "no free prompts"} left today.
             </p>
           </div>
         </CardContent>
@@ -215,13 +210,14 @@ export function MarketingAssistantCard() {
       <AlertDialog open={showAdPrompt} onOpenChange={onAdPromptOpenChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Free AI Limit Reached</AlertDialogTitle>
+            <AlertDialogTitle>Daily Limit Reached</AlertDialogTitle>
             <AlertDialogDescription>
-              You’ve used your free AI prompts for today. Watch a short ad to unlock 1 more prompt.
+              You’ve used your free AI prompts for today. Watch a short ad to unlock 1 more prompt, or upgrade for unlimited access.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Maybe Later</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button variant="secondary" disabled>Upgrade (Coming Soon)</Button>
             <AlertDialogAction onClick={handleWatchAd} disabled={isAdLoading}>
                 {isAdLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Watch Ad
